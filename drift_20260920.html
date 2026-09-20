@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Drift</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap');
+
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      font-family: "SF Pro Rounded", ui-rounded, "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      user-select: none; 
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: manipulation;
+    }
+    
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      position: fixed;
+    }
+    
+    body { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      transition: background 2s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
+    
+    /* Morning: First light of dawn breaking into soft sky */
+    body.day-mode { 
+      background: radial-gradient(circle at 50% 25%, #fff7ed 0%, #ffedd5 35%, #fed7aa 65%, #e0e7ff 100%); 
+      color: #1e293b; 
+    }
+    
+    /* Night: Deep celestial velvet */
+    body.night-mode { 
+      background: radial-gradient(circle at 50% 32%, #0f1322 0%, #080a14 55%, #030408 100%); 
+      color: #f1f5f9; 
+    }
+
+    /* =========================================================
+       FROSTED GLASS CANVAS
+       ========================================================= */
+    .glass-canvas {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      height: 100%;
+      max-height: 840px;
+      border-radius: 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 20px 20px;
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      transition: background 1.5s ease, border-color 1.5s ease, box-shadow 1.5s ease;
+      overflow: hidden;
+    }
+
+    .day-mode .glass-canvas {
+      background: rgba(255, 255, 255, 0.42);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      box-shadow: 
+        0 20px 45px -10px rgba(251, 146, 60, 0.15),
+        0 30px 60px -15px rgba(0, 0, 0, 0.05),
+        inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    }
+
+    .night-mode .glass-canvas {
+      background: rgba(15, 20, 36, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 
+        0 25px 60px -15px rgba(0, 0, 0, 0.7),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    }
+
+    /* =========================================================
+       TOP BAR & TRACKER
+       ========================================================= */
+    .top-section {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      z-index: 20;
+      transition: opacity 0.4s ease;
+    }
+
+    .top-bar {
+      width: 100%;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+    }
+
+    .brand-group {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: opacity 0.4s ease;
+    }
+
+    h1 { 
+      font-size: 25px; 
+      font-weight: 600; 
+      letter-spacing: 0.5px; 
+      opacity: 0.9; 
+      transition: opacity 0.8s ease; 
+    }
+    h1.hidden { opacity: 0; }
+
+    .streak-badge { 
+      font-size: 13px; 
+      font-weight: 600; 
+      letter-spacing: 0.2px;
+      opacity: 0; 
+      transform: translateY(4px); 
+      transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); 
+      position: absolute;
+      top: 28px;
+      white-space: nowrap;
+    }
+    .day-mode .streak-badge { color: #ea580c; }
+    .night-mode .streak-badge { color: #a78bfa; }
+    .streak-badge.visible { opacity: 1; transform: translateY(0); }
+
+    /* Theme Switcher */
+    .theme-switch-btn {
+      position: relative;
+      width: 54px;
+      height: 30px;
+      padding: 3px;
+      border-radius: 9999px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      outline: none;
+      background: transparent;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, opacity 0.4s ease;
+    }
+    .theme-switch-btn:active { transform: scale(0.95); }
+
+    .day-mode .theme-switch-btn {
+      background: rgba(255, 255, 255, 0.65);
+      border-color: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 2px 10px rgba(251, 146, 60, 0.12);
+    }
+    .night-mode .theme-switch-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .track-icons {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 7px;
+      pointer-events: none;
+    }
+
+    .track-sun { color: #f97316; display: flex; align-items: center; justify-content: center; transition: opacity 0.3s ease; }
+    .day-mode .track-sun { opacity: 0.95; }
+    .night-mode .track-sun { opacity: 0.2; }
+
+    .track-moon { display: flex; align-items: center; justify-content: center; transition: opacity 0.3s ease; }
+    .day-mode .track-moon { opacity: 0.2; color: #94a3b8; }
+    .night-mode .track-moon { opacity: 0.95; color: #c084fc; }
+
+    .switch-thumb {
+      position: relative;
+      z-index: 2;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.3s ease, box-shadow 0.3s ease;
+    }
+    .day-mode .switch-thumb {
+      transform: translate3d(0, 0, 0);
+      background: #ffffff;
+      box-shadow: 0 1px 4px rgba(234, 88, 12, 0.25);
+    }
+    .night-mode .switch-thumb {
+      transform: translate3d(24px, 0, 0);
+      background: #4338ca;
+      border: 1px solid rgba(192, 132, 252, 0.4);
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Minimalist Cycle Droplets */
+    .cycles-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      opacity: 0;
+      transform: translateY(-6px);
+      pointer-events: none;
+    }
+    .cycles-row.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .day-mode .cycles-row {
+      background: rgba(255, 255, 255, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+    .night-mode .cycles-row {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .mini-blob-slot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.4s ease;
+    }
+    .day-mode .mini-blob-slot { background: rgba(0, 0, 0, 0.08); }
+    .night-mode .mini-blob-slot { background: rgba(255, 255, 255, 0.12); }
+
+    .mini-blob {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      transform: scale(0);
+      opacity: 0;
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+    }
+    .day-mode .mini-blob {
+      background: linear-gradient(135deg, #ff7e5f, #feb47b);
+      box-shadow: 0 0 6px rgba(251, 146, 60, 0.6);
+    }
+    .night-mode .mini-blob {
+      background: linear-gradient(135deg, #a855f7, #38bdf8);
+      box-shadow: 0 0 7px rgba(168, 85, 247, 0.65);
+    }
+
+    .mini-blob-slot.active .mini-blob {
+      opacity: 0.7;
+      transform: scale(0.65);
+      animation: miniPulse 2.5s ease-in-out infinite alternate;
+    }
+    @keyframes miniPulse {
+      0% { transform: scale(0.5); opacity: 0.5; }
+      100% { transform: scale(0.85); opacity: 0.95; }
+    }
+
+    .mini-blob-slot.completed .mini-blob {
+      opacity: 1;
+      transform: scale(1.15);
+      animation: miniPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes miniPop {
+      0% { transform: scale(0.6); }
+      60% { transform: scale(1.4); }
+      100% { transform: scale(1); }
+    }
+
+    /* =========================================================
+       DURATION CAPSULE
+       ========================================================= */
+    .duration-container {
+      position: absolute;
+      top: 96px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 15;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .duration-container.hidden {
+      opacity: 0;
+      transform: translateY(-10px);
+      pointer-events: none;
+    }
+
+    .duration-capsule {
+      display: flex;
+      align-items: center;
+      padding: 4px;
+      border-radius: 999px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      gap: 4px;
+      transition: background 0.4s ease, border-color 0.4s ease;
+    }
+    .day-mode .duration-capsule {
+      background: rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 4px 16px rgba(251, 146, 60, 0.1);
+    }
+    .night-mode .duration-capsule {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .duration-tab {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+      opacity: 0.55;
+    }
+    .day-mode .duration-tab { color: #1e293b; }
+    .night-mode .duration-tab { color: #cbd5e1; }
+
+    .tab-label {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .tab-time {
+      font-size: 11px;
+      font-weight: 500;
+      opacity: 0.65;
+    }
+
+    .duration-tab.active {
+      opacity: 1;
+      transform: scale(1.02);
+    }
+    .day-mode .duration-tab.active {
+      background: rgba(255, 255, 255, 0.9);
+      color: #ea580c;
+      box-shadow: 0 2px 10px rgba(234, 88, 12, 0.18);
+    }
+    .night-mode .duration-tab.active {
+      background: rgba(255, 255, 255, 0.12);
+      color: #c084fc;
+      box-shadow: 0 2px 12px rgba(168, 85, 247, 0.35);
+    }
+
+    /* =========================================================
+       FLUID DRIFT STAGE
+       ========================================================= */
+    .blob-area { 
+      flex: 1; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      width: 100%; 
+      position: relative; 
+      isolation: isolate;
+    }
+
+    .blob-halo {
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(65px);
+      opacity: 0.45;
+      transform: scale(1);
+      transition: opacity 2s ease, transform 2s ease, background 2s ease;
+      will-change: transform, opacity;
+    }
+    .day-mode .blob-halo { 
+      background: radial-gradient(circle, rgba(251, 146, 60, 0.45), rgba(244, 63, 94, 0.25) 55%, rgba(253, 224, 71, 0.15) 75%, transparent); 
+    }
+    .night-mode .blob-halo { 
+      background: radial-gradient(circle, rgba(124, 58, 237, 0.4), rgba(79, 70, 229, 0.25) 50%, rgba(2, 132, 199, 0.15) 70%, transparent); 
+    }
+
+    .blob-mover { 
+      position: absolute; 
+      width: 148px; 
+      height: 148px; 
+      z-index: 2; 
+      transform: translate3d(0, 130px, 0); 
+      will-change: transform;
+      cursor: pointer;
+    }
+
+    .blob-scaler {
+      width: 100%;
+      height: 100%;
+      transform-origin: center center;
+      transform: scale3d(1, 1, 1);
+      will-change: transform;
+    }
+
+    .fluid-core { 
+      width: 100%; 
+      height: 100%; 
+      position: relative;
+      animation: morphPureFluid 10s ease-in-out infinite alternate, fluidShimmer 16s linear infinite;
+      transition: background 2s ease, box-shadow 2s ease;
+      will-change: border-radius, background-position, transform;
+      outline: 1px solid transparent;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      transform: translateZ(0);
+    }
+
+    .day-mode .fluid-core { 
+      background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 30%, #ff6b8b 65%, #ffd166 100%); 
+      background-size: 160% 160%;
+      box-shadow: 
+        inset 10px 10px 24px rgba(255, 255, 255, 0.55),
+        inset -10px -10px 24px rgba(194, 65, 12, 0.18),
+        0 20px 45px rgba(249, 115, 22, 0.22),
+        0 0 1px 0.5px rgba(255, 255, 255, 0.4);
+    }
+
+    .night-mode .fluid-core { 
+      background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 35%, #3b82f6 70%, #0284c7 100%); 
+      background-size: 170% 170%;
+      box-shadow: 
+        inset 10px 10px 24px rgba(255, 255, 255, 0.35),
+        inset -10px -10px 24px rgba(15, 23, 42, 0.45),
+        0 20px 50px rgba(99, 102, 241, 0.35),
+        0 0 1px 0.5px rgba(192, 132, 252, 0.35);
+    }
+
+    @keyframes morphPureFluid {
+      0%   { border-radius: 46% 54% 53% 47% / 48% 46% 54% 52%; transform: rotate(0deg); }
+      33%  { border-radius: 54% 46% 47% 53% / 52% 54% 46% 48%; transform: rotate(1.5deg); }
+      66%  { border-radius: 48% 52% 54% 46% / 46% 48% 52% 54%; transform: rotate(-1.5deg); }
+      100% { border-radius: 53% 47% 48% 52% / 54% 52% 48% 46%; transform: rotate(0.8deg); }
+    }
+
+    @keyframes fluidShimmer {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes gentleLevitate { 
+      0%   { transform: translate3d(0, 130px, 0); }
+      50%  { transform: translate3d(0, 114px, 0); }
+      100% { transform: translate3d(0, 130px, 0); }
+    }
+    .blob-mover.idle { animation: gentleLevitate 5s ease-in-out infinite; }
+
+    /* =========================================================
+       HARMONIC 16-SECOND BREATH DYNAMICS
+       ========================================================= */
+    @keyframes fluidMove {
+      0% { 
+        transform: translate3d(0, 130px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      25% { 
+        transform: translate3d(0, -60px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      50% { 
+        transform: translate3d(0, -62px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      75% { 
+        transform: translate3d(0, 130px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      100% { 
+        transform: translate3d(0, 130px, 0); 
+      }
+    }
+
+    @keyframes harmonicBreathScale {
+      0% { transform: scale3d(1, 1, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      25% { transform: scale3d(1.85, 1.85, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      50% { transform: scale3d(1.88, 1.88, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      75% { transform: scale3d(1, 1, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      100% { transform: scale3d(1.02, 1.02, 1); }
+    }
+
+    @keyframes haloPulse {
+      0% { opacity: 0.3; transform: scale(0.95); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      25% { opacity: 0.85; transform: scale(1.65); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      50% { opacity: 0.88; transform: scale(1.68); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      75% { opacity: 0.3; transform: scale(0.95); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      100% { opacity: 0.3; transform: scale(0.95); }
+    }
+
+    .blob-mover.breathing { animation: fluidMove 16s infinite; }
+    .blob-mover.breathing .blob-scaler { animation: harmonicBreathScale 16s infinite; }
+    .blob-halo.breathing { animation: haloPulse 16s infinite; }
+
+    @keyframes celebrate {
+      0%   { transform: scale3d(1, 1, 1) translate3d(0, 130px, 0); }
+      35%  { transform: scale3d(1.18, 1.18, 1) translate3d(0, 50px, 0); }
+      70%  { transform: scale3d(0.95, 0.95, 1) translate3d(0, 138px, 0); }
+      100% { transform: scale3d(1, 1, 1) translate3d(0, 130px, 0); }
+    }
+    .blob-mover.done { animation: celebrate 1.2s cubic-bezier(0.25, 1, 0.5, 1); }
+
+    /* =========================================================
+       CALMING INK-DRIFT NUMBERS & PHASE
+       ========================================================= */
+    .phase-wrap {
+      position: absolute;
+      transform: translate3d(0, -60px, 0);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    .phase-wrap.visible { opacity: 1; }
+
+    .day-mode .phase-wrap {
+      color: #0f172a; 
+      text-shadow: 0 1px 14px rgba(255, 255, 255, 0.9);
+    }
+    .day-mode .phase-label { color: #334155; }
+
+    .night-mode .phase-wrap {
+      color: #ffffff;
+      text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8);
+    }
+    .night-mode .phase-label { color: #cbd5e1; }
+
+    .phase-label {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin-bottom: 2px;
+      opacity: 1;
+      transition: opacity 0.35s ease;
+      will-change: opacity;
+    }
+
+    .timer-stage {
+      position: relative;
+      height: 64px;
+      width: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .zen-num {
+      position: absolute;
+      font-size: 56px;
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: -0.5px;
+      font-variant-numeric: tabular-nums;
+      opacity: 0;
+      will-change: opacity, transform, filter;
+      transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1),
+                  transform 0.6s cubic-bezier(0.25, 1, 0.5, 1),
+                  filter 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .zen-num.prep-up {
+      transform: translate3d(0, 14px, 0) scale(0.92);
+      filter: blur(6px);
+      opacity: 0;
+    }
+    .zen-num.prep-down {
+      transform: translate3d(0, -14px, 0) scale(0.92);
+      filter: blur(6px);
+      opacity: 0;
+    }
+
+    .zen-num.active {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+      filter: blur(0px);
+    }
+
+    .zen-num.leave-up {
+      opacity: 0;
+      transform: translate3d(0, -14px, 0) scale(1.06);
+      filter: blur(6px);
+    }
+    .zen-num.leave-down {
+      opacity: 0;
+      transform: translate3d(0, 14px, 0) scale(1.06);
+      filter: blur(6px);
+    }
+
+    /* =========================================================
+       BOTTOM CONTROLS
+       ========================================================= */
+    .bottom-bar {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      min-height: 72px;
+      position: relative;
+      z-index: 20;
+    }
+
+    .instruction { 
+      position: absolute; 
+      top: -30px; 
+      font-size: 14px; 
+      font-weight: 600; 
+      letter-spacing: 0.3px;
+      opacity: 0.75; 
+      transition: opacity 0.4s ease; 
+    }
+    .day-mode .instruction { color: #431407; }
+    .night-mode .instruction { color: #94a3b8; }
+    .instruction.hidden { opacity: 0; }
+
+    .btn-end { 
+      padding: 14px 40px; 
+      border-radius: 999px; 
+      font-size: 15px; 
+      font-weight: 600; 
+      letter-spacing: 0.3px;
+      cursor: pointer; 
+      backdrop-filter: blur(20px); 
+      -webkit-backdrop-filter: blur(20px); 
+      transition: all 0.3s ease; 
+      opacity: 0; 
+      transform: translateY(12px);
+      pointer-events: none; 
+      outline: none;
+    }
+    .btn-end.visible { 
+      opacity: 1; 
+      transform: translateY(0); 
+      pointer-events: auto; 
+    }
+    .btn-end:active { transform: scale(0.96); }
+    
+    .day-mode .btn-end { 
+      background: rgba(255, 255, 255, 0.6); 
+      border: 1px solid rgba(255, 255, 255, 0.85); 
+      color: #0f172a; 
+      box-shadow: 0 8px 24px -6px rgba(251, 146, 60, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.9);
+    }
+    .night-mode .btn-end { 
+      background: rgba(255, 255, 255, 0.08); 
+      border: 1px solid rgba(255, 255, 255, 0.15); 
+      color: #f8fafc; 
+      box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+    }
+
+    /* Bottom-Right Settings Floating Trigger */
+    .settings-trigger {
+      position: absolute;
+      bottom: 22px;
+      right: 20px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: 1px solid transparent;
+      outline: none;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 25;
+      transition: transform 0.2s ease, background 0.4s ease, border-color 0.4s ease, opacity 0.4s ease;
+    }
+    .settings-trigger:active { transform: scale(0.92); }
+    .settings-trigger.hidden {
+      opacity: 0;
+      transform: scale(0.85);
+      pointer-events: none;
+    }
+
+    .day-mode .settings-trigger {
+      background: rgba(255, 255, 255, 0.55);
+      border-color: rgba(255, 255, 255, 0.75);
+      color: #334155;
+      box-shadow: 0 4px 14px rgba(251, 146, 60, 0.12);
+    }
+    .night-mode .settings-trigger {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    /* =========================================================
+       FROSTED SETTINGS SHEET (Translucent over Drift)
+       ========================================================= */
+    .settings-modal {
+      position: absolute;
+      inset: 0;
+      z-index: 50;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      padding: 26px 22px;
+      opacity: 0;
+      transform: scale(0.97) translateY(10px);
+      pointer-events: none;
+      transition: opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+      overflow-y: auto;
+    }
+    .settings-modal.open {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      pointer-events: auto;
+    }
+
+    .day-mode .settings-modal {
+      background: rgba(255, 255, 255, 0.65);
+      color: #0f172a;
+    }
+    .night-mode .settings-modal {
+      background: rgba(10, 14, 26, 0.72);
+      color: #f1f5f9;
+    }
+
+    .settings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .settings-title {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .settings-close-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0, 0, 0, 0.05);
+      color: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 600;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .settings-close-btn:active { transform: scale(0.9); }
+    .night-mode .settings-close-btn { background: rgba(255, 255, 255, 0.1); }
+
+    .settings-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      opacity: 0.55;
+    }
+
+    /* Duration Presets: Brief, Reset, Deep */
+    .duration-slots {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .duration-slot-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 6px;
+      border-radius: 20px;
+      border: 1px solid transparent;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    .day-mode .duration-slot-card {
+      background: rgba(255, 255, 255, 0.5);
+      border-color: rgba(255, 255, 255, 0.7);
+    }
+    .night-mode .duration-slot-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .slot-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .day-mode .slot-title { color: #ea580c; }
+    .night-mode .slot-title { color: #c084fc; }
+
+    .slot-select {
+      width: 100%;
+      padding: 6px 4px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      border: 1px solid transparent;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      text-align-last: center;
+      font-family: inherit;
+    }
+    .day-mode .slot-select {
+      background: rgba(255, 255, 255, 0.9);
+      color: #1e293b;
+      border-color: rgba(0, 0, 0, 0.06);
+    }
+    .night-mode .slot-select {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f1f5f9;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Dual Reminder Section */
+    .reminder-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 24px;
+      border: 1px solid transparent;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: background 0.3s ease;
+    }
+    .day-mode .reminder-card {
+      background: rgba(255, 255, 255, 0.5);
+      border-color: rgba(255, 255, 255, 0.7);
+    }
+    .night-mode .reminder-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .reminder-item {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .reminder-divider {
+      height: 1px;
+      width: 100%;
+      transition: background 0.3s ease;
+    }
+    .day-mode .reminder-divider { background: rgba(0, 0, 0, 0.06); }
+    .night-mode .reminder-divider { background: rgba(255, 255, 255, 0.08); }
+
+    .reminder-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .reminder-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .reminder-label {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .reminder-sub {
+      font-size: 12px;
+      opacity: 0.6;
+      font-weight: 500;
+    }
+
+    /* Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 46px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.15);
+      border-radius: 34px;
+      transition: background-color 0.3s ease;
+    }
+    .night-mode .slider {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    input:checked + .slider {
+      background-color: #f97316;
+    }
+    .night-mode input:checked + .slider {
+      background-color: #8b5cf6;
+    }
+    input:checked + .slider:before {
+      transform: translateX(18px);
+    }
+
+    .time-input-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: opacity 0.3s ease;
+    }
+    .time-input-wrap.disabled {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .reminder-time-input {
+      border: none;
+      outline: none;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .day-mode .reminder-time-input {
+      background: rgba(255, 255, 255, 0.85);
+      color: #0f172a;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .night-mode .reminder-time-input {
+      background: rgba(255, 255, 255, 0.08);
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* =========================================================
+       WHEN SETTINGS ARE OPEN: HIDE BACKGROUND TEXT BUT KEEP BLOB
+       ========================================================= */
+    .settings-active .top-bar .brand-group,
+    .settings-active .top-bar .theme-switch-btn,
+    .settings-active .duration-container,
+    .settings-active .bottom-bar .instruction,
+    .settings-active .settings-trigger {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+  </style>
+</head>
+<body class="day-mode" id="appBody">
+  
+  <div class="glass-canvas" id="mainCanvas">
+    
+    <!-- Top Section: Branding, Theme & Cycle Tracker -->
+    <div class="top-section">
+      <header class="top-bar">
+        <div class="brand-group">
+          <h1 id="bloopTitle">Drift</h1>
+          <div class="streak-badge" id="streakBadge">🔥 <span id="streakCount">0</span> day streak</div>
+        </div>
+
+        <!-- Theme Switcher -->
+        <button 
+          type="button" 
+          class="theme-switch-btn" 
+          id="themeToggle" 
+          role="switch" 
+          aria-checked="false" 
+          aria-label="Toggle theme"
+        >
+          <div class="track-icons">
+            <span class="track-sun">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
+            </span>
+            <span class="track-moon">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+              </svg>
+            </span>
+          </div>
+          <span class="switch-thumb"></span>
+        </button>
+      </header>
+
+      <!-- Minimalist Dynamic Droplet Row -->
+      <div class="cycles-row" id="cyclesRow"></div>
+    </div>
+
+    <!-- Duration Capsule: Brief, Reset, Deep -->
+    <div class="duration-container" id="durationContainer">
+      <div class="duration-capsule" id="durationCapsule"></div>
+    </div>
+
+    <main class="blob-area">
+      <!-- Centered Calm Phase & Fluid Numbers -->
+      <div class="phase-wrap" id="phaseWrap">
+        <div class="phase-label" id="phaseLabel">Inhale</div>
+        <div class="timer-stage">
+          <span class="zen-num active" id="numSlotA">1</span>
+          <span class="zen-num" id="numSlotB"></span>
+        </div>
+      </div>
+
+      <!-- Atmospheric Aura -->
+      <div class="blob-halo" id="blobHalo"></div>
+
+      <!-- Unified Pure Fluid (Always running behind settings) -->
+      <div class="blob-mover idle" id="bloopMover">
+        <div class="blob-scaler">
+          <div class="fluid-core"></div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="bottom-bar">
+      <div class="instruction" id="tapInstruction">Tap Drift to breathe</div>
+      <button class="btn-end" id="endBtn">End Session</button>
+    </footer>
+
+    <!-- Bottom Right Settings Trigger Button -->
+    <button type="button" class="settings-trigger" id="settingsBtn" aria-label="Open Settings">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
+
+    <!-- Translucent Frosted Settings Sheet -->
+    <div class="settings-modal" id="settingsModal">
+      <div class="settings-header">
+        <div class="settings-title">Preferences</div>
+        <button class="settings-close-btn" id="settingsCloseBtn" aria-label="Close">✕</button>
+      </div>
+
+      <!-- Duration Presets Section -->
+      <div class="settings-section">
+        <div class="section-label">Duration Presets (1-5 min)</div>
+        <div class="duration-slots">
+          <div class="duration-slot-card">
+            <span class="slot-title">Brief</span>
+            <select class="slot-select" id="slotSelect0">
+              <option value="1">1 min</option>
+              <option value="2">2 min</option>
+              <option value="3">3 min</option>
+              <option value="4">4 min</option>
+              <option value="5">5 min</option>
+            </select>
+          </div>
+          <div class="duration-slot-card">
+            <span class="slot-title">Reset</span>
+            <select class="slot-select" id="slotSelect1">
+              <option value="1">1 min</option>
+              <option value="2">2 min</option>
+              <option value="3">3 min</option>
+              <option value="4">4 min</option>
+              <option value="5">5 min</option>
+            </select>
+          </div>
+          <div class="duration-slot-card">
+            <span class="slot-title">Deep</span>
+            <select class="slot-select" id="slotSelect2">
+              <option value="1">1 min</option>
+              <option value="2">2 min</option>
+              <option value="3">3 min</option>
+              <option value="4">4 min</option>
+              <option value="5">5 min</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Morning & Evening Reminders Section -->
+      <div class="settings-section">
+        <div class="section-label">Daily Reminders</div>
+        <div class="reminder-card">
+          <!-- Morning Reminder -->
+          <div class="reminder-item">
+            <div class="reminder-row">
+              <div class="reminder-info">
+                <span class="reminder-label">Morning Drift</span>
+                <span class="reminder-sub">Start your day centered</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="morningReminderToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="time-input-wrap disabled" id="morningTimeWrap">
+              <span class="reminder-sub" style="font-weight: 600;">Reminder Time</span>
+              <input type="time" class="reminder-time-input" id="morningTimeInput" value="08:00">
+            </div>
+          </div>
+
+          <div class="reminder-divider"></div>
+
+          <!-- Evening Reminder -->
+          <div class="reminder-item">
+            <div class="reminder-row">
+              <div class="reminder-info">
+                <span class="reminder-label">Evening Drift</span>
+                <span class="reminder-sub">Unwind and calm before bed</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="eveningReminderToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="time-input-wrap disabled" id="eveningTimeWrap">
+              <span class="reminder-sub" style="font-weight: 600;">Reminder Time</span>
+              <input type="time" class="reminder-time-input" id="eveningTimeInput" value="21:30">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const body = document.getElementById('appBody');
+    const mainCanvas = document.getElementById('mainCanvas');
+    const themeToggle = document.getElementById('themeToggle');
+    const blobMover = document.getElementById('bloopMover');
+    const blobHalo = document.getElementById('blobHalo');
+    const endBtn = document.getElementById('endBtn');
+    const streakBadge = document.getElementById('streakBadge');
+    const streakCountSpan = document.getElementById('streakCount');
+    const tapInstruction = document.getElementById('tapInstruction');
+    const phaseWrap = document.getElementById('phaseWrap');
+    const phaseLabel = document.getElementById('phaseLabel');
+    const numSlotA = document.getElementById('numSlotA');
+    const numSlotB = document.getElementById('numSlotB');
+    const cyclesRow = document.getElementById('cyclesRow');
+    const durationContainer = document.getElementById('durationContainer');
+    const durationCapsule = document.getElementById('durationCapsule');
+    
+    // Settings Elements
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsModal = document.getElementById('settingsModal');
+    const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+    const slotSelects = [
+      document.getElementById('slotSelect0'),
+      document.getElementById('slotSelect1'),
+      document.getElementById('slotSelect2')
+    ];
+    const morningReminderToggle = document.getElementById('morningReminderToggle');
+    const morningTimeInput = document.getElementById('morningTimeInput');
+    const morningTimeWrap = document.getElementById('morningTimeWrap');
+    const eveningReminderToggle = document.getElementById('eveningReminderToggle');
+    const eveningTimeInput = document.getElementById('eveningTimeInput');
+    const eveningTimeWrap = document.getElementById('eveningTimeWrap');
+
+    let isBreathing = false;
+    let cycleInterval = null;
+    let reminderCheckInterval = null;
+    let isDayMode = true;
+    let currentCycleSecond = 0;
+    let completedCycles = 0;
+    let activeSlot = 'A';
+    let currentPhaseName = '';
+
+    // Slot Titles
+    const SLOT_NAMES = ['Brief', 'Reset', 'Deep'];
+
+    // Duration State (Default 1, 2, 4 mins)
+    let userDurations = [1, 2, 4];
+    let selectedDurationIdx = 1; // "Reset" by default
+
+    // Convert Minutes to 16-second box cycles
+    function getCyclesForMinutes(m) {
+      return Math.round((m * 60) / 16);
+    }
+
+    // 16-Second Unified Cadence
+    const CYCLE_TIMELINE = [
+      { phase: 'Inhale', num: 1, dir: 'up',   isPhaseStart: true },
+      { phase: 'Inhale', num: 2, dir: 'up',   isPhaseStart: false },
+      { phase: 'Inhale', num: 3, dir: 'up',   isPhaseStart: false },
+      { phase: 'Inhale', num: 4, dir: 'up',   isPhaseStart: false },
+
+      { phase: 'Hold',   num: 4, dir: 'down', isPhaseStart: true },
+      { phase: 'Hold',   num: 3, dir: 'down', isPhaseStart: false },
+      { phase: 'Hold',   num: 2, dir: 'down', isPhaseStart: false },
+      { phase: 'Hold',   num: 1, dir: 'down', isPhaseStart: false },
+
+      { phase: 'Exhale', num: 1, dir: 'up',   isPhaseStart: true },
+      { phase: 'Exhale', num: 2, dir: 'up',   isPhaseStart: false },
+      { phase: 'Exhale', num: 3, dir: 'up',   isPhaseStart: false },
+      { phase: 'Exhale', num: 4, dir: 'up',   isPhaseStart: false },
+
+      { phase: 'Hold',   num: 4, dir: 'down', isPhaseStart: true },
+      { phase: 'Hold',   num: 3, dir: 'down', isPhaseStart: false },
+      { phase: 'Hold',   num: 2, dir: 'down', isPhaseStart: false },
+      { phase: 'Hold',   num: 1, dir: 'down', isPhaseStart: false }
+    ];
+
+    function initApp() {
+      setInitialTheme();
+      loadStreak();
+      loadSettings();
+      renderDurationTabs();
+      rebuildCycleSlots();
+      initSwipeDuration();
+      initSettingsEvents();
+      initReminderService();
+
+      blobMover.addEventListener('click', () => { if (!isBreathing && !settingsModal.classList.contains('open')) startSession(); });
+      endBtn.addEventListener('click', stopSession);
+      themeToggle.addEventListener('click', toggleTheme);
+    }
+
+    /* =========================================================
+       SETTINGS & PERSISTENCE
+       ========================================================= */
+    function loadSettings() {
+      const saved = localStorage.getItem('driftSettings_v2');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed.durations) && parsed.durations.length === 3) {
+            userDurations = parsed.durations;
+          }
+          if (parsed.morningEnabled !== undefined) {
+            morningReminderToggle.checked = parsed.morningEnabled;
+            morningTimeWrap.classList.toggle('disabled', !parsed.morningEnabled);
+          }
+          if (parsed.morningTime) {
+            morningTimeInput.value = parsed.morningTime;
+          }
+          if (parsed.eveningEnabled !== undefined) {
+            eveningReminderToggle.checked = parsed.eveningEnabled;
+            eveningTimeWrap.classList.toggle('disabled', !parsed.eveningEnabled);
+          }
+          if (parsed.eveningTime) {
+            eveningTimeInput.value = parsed.eveningTime;
+          }
+        } catch(e) {}
+      }
+
+      slotSelects.forEach((sel, i) => {
+        sel.value = userDurations[i];
+      });
+    }
+
+    function saveSettings() {
+      const settings = {
+        durations: userDurations,
+        morningEnabled: morningReminderToggle.checked,
+        morningTime: morningTimeInput.value,
+        eveningEnabled: eveningReminderToggle.checked,
+        eveningTime: eveningTimeInput.value
+      };
+      localStorage.setItem('driftSettings_v2', JSON.stringify(settings));
+    }
+
+    function openSettings() {
+      if (isBreathing) return;
+      settingsModal.classList.add('open');
+      mainCanvas.classList.add('settings-active');
+    }
+
+    function closeSettings() {
+      settingsModal.classList.remove('open');
+      mainCanvas.classList.remove('settings-active');
+    }
+
+    function initSettingsEvents() {
+      settingsBtn.addEventListener('click', openSettings);
+      settingsCloseBtn.addEventListener('click', closeSettings);
+
+      slotSelects.forEach((sel, i) => {
+        sel.addEventListener('change', (e) => {
+          userDurations[i] = parseInt(e.target.value, 10);
+          saveSettings();
+          renderDurationTabs();
+          rebuildCycleSlots();
+        });
+      });
+
+      morningReminderToggle.addEventListener('change', (e) => {
+        const enabled = e.target.checked;
+        morningTimeWrap.classList.toggle('disabled', !enabled);
+        if (enabled && "Notification" in window) Notification.requestPermission();
+        saveSettings();
+      });
+
+      eveningReminderToggle.addEventListener('change', (e) => {
+        const enabled = e.target.checked;
+        eveningTimeWrap.classList.toggle('disabled', !enabled);
+        if (enabled && "Notification" in window) Notification.requestPermission();
+        saveSettings();
+      });
+
+      morningTimeInput.addEventListener('change', saveSettings);
+      eveningTimeInput.addEventListener('change', saveSettings);
+    }
+
+    /* Dual Morning & Evening Background Checker */
+    function initReminderService() {
+      clearInterval(reminderCheckInterval);
+      reminderCheckInterval = setInterval(() => {
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+        const now = new Date();
+        const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const todayStr = now.toDateString();
+
+        // Check Morning Reminder
+        if (morningReminderToggle.checked && currentTimeStr === morningTimeInput.value) {
+          const lastMorning = localStorage.getItem('driftLastMorningDate');
+          if (lastMorning !== todayStr) {
+            new Notification("Drift · Morning", {
+              body: "Good morning. Take a peaceful moment to breathe and center yourself.",
+              icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23f97316'/></svg>"
+            });
+            localStorage.setItem('driftLastMorningDate', todayStr);
+          }
+        }
+
+        // Check Evening Reminder
+        if (eveningReminderToggle.checked && currentTimeStr === eveningTimeInput.value) {
+          const lastEvening = localStorage.getItem('driftLastEveningDate');
+          if (lastEvening !== todayStr) {
+            new Notification("Drift · Evening", {
+              body: "Good evening. Unwind and release the tension of the day before sleep.",
+              icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%238b5cf6'/></svg>"
+            });
+            localStorage.setItem('driftLastEveningDate', todayStr);
+          }
+        }
+      }, 30000);
+    }
+
+    /* =========================================================
+       DURATION TABS & SWIPE GESTURES
+       ========================================================= */
+    function renderDurationTabs() {
+      durationCapsule.innerHTML = '';
+      userDurations.forEach((mins, idx) => {
+        const tab = document.createElement('div');
+        tab.className = 'duration-tab' + (idx === selectedDurationIdx ? ' active' : '');
+        tab.dataset.idx = idx;
+        tab.innerHTML = `<span class="tab-label">${SLOT_NAMES[idx]}</span><span class="tab-time">${mins}m</span>`;
+        tab.addEventListener('click', () => setDurationIndex(idx));
+        durationCapsule.appendChild(tab);
+      });
+    }
+
+    function initSwipeDuration() {
+      let touchStartX = 0;
+      let touchStartY = 0;
+
+      mainCanvas.addEventListener('touchstart', (e) => {
+        if (isBreathing || settingsModal.classList.contains('open')) return;
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }, { passive: true });
+
+      mainCanvas.addEventListener('touchend', (e) => {
+        if (isBreathing || settingsModal.classList.contains('open')) return;
+        const touchEndX = e.changedTouches[0].screenX;
+        const touchEndY = e.changedTouches[0].screenY;
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+
+        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+          if (deltaX > 0) {
+            if (selectedDurationIdx > 0) setDurationIndex(selectedDurationIdx - 1);
+          } else {
+            if (selectedDurationIdx < userDurations.length - 1) setDurationIndex(selectedDurationIdx + 1);
+          }
+        }
+      }, { passive: true });
+    }
+
+    function setDurationIndex(idx) {
+      if (idx === selectedDurationIdx) return;
+      selectedDurationIdx = idx;
+      triggerSubtleHaptic();
+
+      const tabs = durationCapsule.querySelectorAll('.duration-tab');
+      tabs.forEach((tab, i) => {
+        tab.classList.toggle('active', i === selectedDurationIdx);
+      });
+
+      rebuildCycleSlots();
+    }
+
+    function rebuildCycleSlots() {
+      const minutes = userDurations[selectedDurationIdx];
+      const count = getCyclesForMinutes(minutes);
+      cyclesRow.innerHTML = '';
+      for (let i = 0; i < count; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'mini-blob-slot';
+        const blob = document.createElement('div');
+        blob.className = 'mini-blob';
+        slot.appendChild(blob);
+        cyclesRow.appendChild(slot);
+      }
+    }
+
+    /* =========================================================
+       THEME & APP LIFECYCLE
+       ========================================================= */
+    function setInitialTheme() {
+      const hour = new Date().getHours();
+      isDayMode = (hour >= 6 && hour < 19);
+      updateThemeUI();
+    }
+
+    function toggleTheme() {
+      isDayMode = !isDayMode;
+      updateThemeUI();
+    }
+
+    function updateThemeUI() {
+      if (isDayMode) {
+        body.className = 'day-mode';
+        themeToggle.setAttribute('aria-checked', 'false');
+      } else {
+        body.className = 'night-mode';
+        themeToggle.setAttribute('aria-checked', 'true');
+      }
+    }
+
+    function loadStreak() {
+      let streak = localStorage.getItem('driftStreak') || 0;
+      streakCountSpan.innerText = streak;
+    }
+
+    function updateStreak() {
+      let streak = parseInt(localStorage.getItem('driftStreak') || 0);
+      streak += 1;
+      localStorage.setItem('driftStreak', streak);
+      streakCountSpan.innerText = streak;
+      streakBadge.classList.add('visible');
+    }
+
+    function triggerSubtleHaptic() {
+      if (!navigator.vibrate) return;
+      navigator.vibrate(18);
+    }
+
+    function updatePhaseLabel(name) {
+      if (currentPhaseName === name) return;
+      currentPhaseName = name;
+
+      phaseLabel.style.opacity = '0';
+      setTimeout(() => {
+        phaseLabel.innerText = name;
+        phaseLabel.style.opacity = '1';
+      }, 250);
+    }
+
+    function crossfadeNumber(newNum, direction) {
+      const currentEl = activeSlot === 'A' ? numSlotA : numSlotB;
+      const nextEl = activeSlot === 'A' ? numSlotB : numSlotA;
+
+      if (currentEl.innerText === String(newNum)) return;
+
+      nextEl.innerText = newNum;
+      nextEl.className = 'zen-num ' + (direction === 'up' ? 'prep-up' : 'prep-down');
+      
+      requestAnimationFrame(() => {
+        currentEl.className = 'zen-num ' + (direction === 'up' ? 'leave-up' : 'leave-down');
+        nextEl.className = 'zen-num active';
+      });
+
+      activeSlot = activeSlot === 'A' ? 'B' : 'A';
+    }
+
+    function updateCycleIndicators() {
+      const slots = cyclesRow.querySelectorAll('.mini-blob-slot');
+      slots.forEach((slot, index) => {
+        slot.classList.remove('active', 'completed');
+        if (index < completedCycles) {
+          slot.classList.add('completed');
+        } else if (index === completedCycles && isBreathing) {
+          slot.classList.add('active');
+        }
+      });
+    }
+
+    function renderStep(second) {
+      const step = CYCLE_TIMELINE[second];
+      updatePhaseLabel(step.phase);
+      crossfadeNumber(step.num, step.dir);
+
+      if (step.isPhaseStart) {
+        triggerSubtleHaptic();
+      }
+    }
+
+    function startSession() {
+      isBreathing = true;
+      currentCycleSecond = 0;
+      completedCycles = 0;
+      currentPhaseName = '';
+      
+      blobMover.classList.remove('idle', 'done');
+      endBtn.classList.add('visible');
+      settingsBtn.classList.add('hidden'); // Hide settings button when breathing
+      streakBadge.classList.remove('visible');
+      tapInstruction.classList.add('hidden');
+      durationContainer.classList.add('hidden');
+      phaseWrap.classList.add('visible');
+      cyclesRow.classList.add('visible');
+      
+      blobMover.classList.add('breathing');
+      blobHalo.classList.add('breathing');
+      
+      updateCycleIndicators();
+      renderStep(currentCycleSecond);
+
+      const targetCycles = getCyclesForMinutes(userDurations[selectedDurationIdx]);
+
+      cycleInterval = setInterval(() => {
+        currentCycleSecond++;
+
+        if (currentCycleSecond >= CYCLE_TIMELINE.length) {
+          currentCycleSecond = 0;
+          completedCycles++;
+          updateCycleIndicators();
+
+          if (completedCycles >= targetCycles) {
+            finishSession();
+            return;
+          }
+        }
+
+        renderStep(currentCycleSecond);
+      }, 1000);
+    }
+
+    function stopSession() {
+      isBreathing = false;
+      clearInterval(cycleInterval);
+      
+      blobMover.classList.remove('breathing', 'done');
+      blobHalo.classList.remove('breathing');
+      blobMover.classList.add('idle');
+      
+      endBtn.classList.remove('visible');
+      settingsBtn.classList.remove('hidden'); // Restore settings button
+      tapInstruction.classList.remove('hidden');
+      durationContainer.classList.remove('hidden');
+      phaseWrap.classList.remove('visible');
+      cyclesRow.classList.remove('visible');
+
+      setTimeout(() => {
+        numSlotA.innerText = '1';
+        numSlotA.className = 'zen-num active';
+        numSlotB.className = 'zen-num';
+        activeSlot = 'A';
+        phaseLabel.innerText = 'Inhale';
+        currentPhaseName = '';
+        completedCycles = 0;
+        updateCycleIndicators();
+      }, 400);
+    }
+
+    function finishSession() {
+      isBreathing = false;
+      clearInterval(cycleInterval);
+      
+      blobMover.classList.remove('breathing');
+      blobHalo.classList.remove('breathing');
+      blobMover.classList.add('done');
+      
+      endBtn.classList.remove('visible');
+      settingsBtn.classList.remove('hidden');
+      tapInstruction.classList.remove('hidden');
+      durationContainer.classList.remove('hidden');
+      phaseWrap.classList.remove('visible');
+      
+      setTimeout(() => { 
+        blobMover.classList.remove('done');
+        blobMover.classList.add('idle');
+        updateStreak(); 
+        numSlotA.innerText = '1';
+        numSlotA.className = 'zen-num active';
+        numSlotB.className = 'zen-num';
+        activeSlot = 'A';
+        phaseLabel.innerText = 'Inhale';
+        currentPhaseName = '';
+        completedCycles = 0;
+        cyclesRow.classList.remove('visible');
+        updateCycleIndicators();
+      }, 1200);
+    }
+
+    window.onload = initApp;
+  </script>
+</body>
+</html>
