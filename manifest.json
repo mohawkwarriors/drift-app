@@ -1,0 +1,9 @@
+{
+  "name": "Drift — Fluid Mindfulness",
+  "short_name": "Drift",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0B0D17",
+  "theme_color": "#0B0D17",
+  "description": "Fluid breathing companion with physics-based relaxation."
+}
