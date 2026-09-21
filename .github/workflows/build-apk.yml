@@ -55,46 +55,77 @@ jobs:
           # Align Kotlin libraries to eliminate duplicate class conflicts
           printf "\nconfigurations.all {\n    resolutionStrategy {\n        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'\n        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'\n        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'\n    }\n}\n" >> android/app/build.gradle
 
-      - name: Inject Custom App Icons
+      - name: Generate and Inject Blob App Icons
         run: |
           python3 -m pip install Pillow
           python3 -c "
-          import os
-          from PIL import Image
+          import os, math
+          from PIL import Image, ImageDraw, ImageFilter
 
-          # Find icon in repository
           candidates = ['icon.png', 'Icon.png', 'blob.png', 'assets/icon.png', 'assets/icon-only.png']
           icon_path = next((c for c in candidates if os.path.exists(c)), None)
-          if not icon_path:
-              pngs = [f for f in os.listdir('.') if f.lower().endswith('.png') and ('icon' in f.lower() or 'blob' in f.lower())]
-              if pngs: icon_path = pngs[0]
 
           if icon_path:
-              print(f'Using {icon_path} to generate Android launcher icons...')
+              print(f'Using uploaded icon: {icon_path}')
               img = Image.open(icon_path).convert('RGBA')
-              res_dir = 'android/app/src/main/res'
-              sizes = {
-                  'mipmap-mdpi': (48, 108),
-                  'mipmap-hdpi': (72, 162),
-                  'mipmap-xhdpi': (96, 216),
-                  'mipmap-xxhdpi': (144, 324),
-                  'mipmap-xxxhdpi': (192, 432)
-              }
-              for folder, (std_size, fg_size) in sizes.items():
-                  target_dir = os.path.join(res_dir, folder)
-                  if os.path.exists(target_dir):
-                      img.resize((std_size, std_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher.png'))
-                      img.resize((std_size, std_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher_round.png'))
-                      img.resize((fg_size, fg_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher_foreground.png'))
-                      print(f'  Updated {folder}')
-
-              bg_file = os.path.join(res_dir, 'values', 'ic_launcher_background.xml')
-              os.makedirs(os.path.dirname(bg_file), exist_ok=True)
-              with open(bg_file, 'w') as f:
-                  f.write('<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <color name=\"ic_launcher_background\">#0B0D17</color>\n</resources>\n')
-              print('Icons successfully replaced!')
           else:
-              print('WARNING: No icon image found in repo!')
+              print('No icon image found in repo. Generating fluid blob icon automatically...')
+              size = 1024
+              img = Image.new('RGBA', (size, size), (11, 13, 23, 255))
+              center = size // 2
+
+              g1 = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+              ImageDraw.Draw(g1).ellipse([center - 320, center - 320, center + 320, center + 320], fill=(56, 189, 248, 85))
+              img = Image.alpha_composite(img, g1.filter(ImageFilter.GaussianBlur(80)))
+
+              g2 = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+              ImageDraw.Draw(g2).ellipse([center - 240, center - 200, center + 280, center + 320], fill=(168, 85, 247, 95))
+              img = Image.alpha_composite(img, g2.filter(ImageFilter.GaussianBlur(60)))
+
+              b_layer = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+              points = []
+              num_points = 180
+              r_base = 280
+              for i in range(num_points):
+                  angle = (2 * math.pi * i) / num_points
+                  r = r_base + 35 * math.sin(3 * angle) + 25 * math.cos(2 * angle) + 15 * math.sin(5 * angle)
+                  points.append((center + r * math.cos(angle), center + r * math.sin(angle)))
+              ImageDraw.Draw(b_layer).polygon(points, fill=(56, 189, 248, 240))
+              img = Image.alpha_composite(img, b_layer.filter(ImageFilter.GaussianBlur(6)))
+
+              c_layer = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+              core_points = []
+              for i in range(num_points):
+                  angle = (2 * math.pi * i) / num_points
+                  r = (r_base * 0.65) + 20 * math.sin(3 * angle) + 15 * math.cos(2 * angle)
+                  core_points.append((center + r * math.cos(angle) - 20, center + r * math.sin(angle) - 20))
+              ImageDraw.Draw(c_layer).polygon(core_points, fill=(192, 132, 252, 220))
+              img = Image.alpha_composite(img, c_layer.filter(ImageFilter.GaussianBlur(25)))
+
+              h_layer = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+              ImageDraw.Draw(h_layer).ellipse([center - 160, center - 180, center + 120, center + 100], fill=(255, 255, 255, 140))
+              img = Image.alpha_composite(img, h_layer.filter(ImageFilter.GaussianBlur(30)))
+
+          res_dir = 'android/app/src/main/res'
+          sizes = {
+              'mipmap-mdpi': (48, 108),
+              'mipmap-hdpi': (72, 162),
+              'mipmap-xhdpi': (96, 216),
+              'mipmap-xxhdpi': (144, 324),
+              'mipmap-xxxhdpi': (192, 432)
+          }
+          for folder, (std_size, fg_size) in sizes.items():
+              target_dir = os.path.join(res_dir, folder)
+              if os.path.exists(target_dir):
+                  img.resize((std_size, std_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher.png'))
+                  img.resize((std_size, std_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher_round.png'))
+                  img.resize((fg_size, fg_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher_foreground.png'))
+
+          bg_file = os.path.join(res_dir, 'values', 'ic_launcher_background.xml')
+          os.makedirs(os.path.dirname(bg_file), exist_ok=True)
+          with open(bg_file, 'w') as f:
+              f.write('<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <color name=\"ic_launcher_background\">#0B0D17</color>\n</resources>\n')
+          print('All Android launcher icons successfully injected!')
           "
 
       - name: Build Android Debug APK
