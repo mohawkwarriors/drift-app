@@ -1,0 +1,10 @@
+{
+  "appId": "com.mohawkwarriors.drift",
+  "appName": "Drift",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": true
+  }
+}
