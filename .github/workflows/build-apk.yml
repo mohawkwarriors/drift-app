@@ -44,6 +44,7 @@ jobs:
             npm init -y
           fi
           npm install --save @capacitor/core @capacitor/cli @capacitor/android
+          npm install --save-dev @capacitor/assets
           
           if [ ! -f "capacitor.config.json" ]; then
             npx cap init "Drift" "com.mohawkwarriors.drift" --web-dir www
@@ -52,9 +53,16 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
+          # Automatically generate all Android launcher icon sizes from icon.png
+          if [ -f "icon.png" ]; then
+            mkdir -p assets
+            cp icon.png assets/icon.png
+            npx @capacitor/assets generate --android || true
+          fi
+
           # Align Kotlin libraries to eliminate duplicate class conflicts
           printf "\nconfigurations.all {\n    resolutionStrategy {\n        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'\n        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'\n        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'\n    }\n}\n" >> android/app/build.gradle
-
+   
       - name: Build Android Debug APK
         run: |
           cd android
