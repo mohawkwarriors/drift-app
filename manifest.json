@@ -1,14 +1,13 @@
 {
-  "name": "Drift Mindfulness",
+  "name": "Drift — Fluid Mindfulness",
   "short_name": "Drift",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0B0D17",
   "theme_color": "#0B0D17",
-  "description": "Fluid breathing companion with physics-based relaxation.",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3062/3062634.png",
+      "src": "icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
