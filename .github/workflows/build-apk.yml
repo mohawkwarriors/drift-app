@@ -14,32 +14,29 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Java JDK 17
+      - name: Set up Java JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: 17
+          java-version: 21
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Accept Android Licenses
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
-
       - name: Prepare Web Assets
         run: |
           mkdir -p www
-          if [ -f "index.html" ]; then
-            cp index.html www/index.html
-          elif [ -f "drift_20260920.html" ]; then
+          if [ -f "drift_20260920.html" ]; then
             cp drift_20260920.html www/index.html
+          elif [ -f "index.html" ]; then
+            cp index.html www/index.html
           else
-            cp *.html www/index.html
+            first_html=$(ls *.html 2>/dev/null | head -n 1)
+            [ -n "$first_html" ] && cp "$first_html" www/index.html
           fi
-          [ -f "manifest.json" ] && cp manifest.json www/ || true
+          cp *.html *.js *.css *.json *.png *.svg www/ 2>/dev/null || true
 
       - name: Setup Capacitor & Generate Android Project
         run: |
@@ -65,5 +62,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Drift-App-Debug-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/**/*.apk
           retention-days: 30
