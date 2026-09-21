@@ -8,6 +8,12 @@
 ![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)
 
 ---
+## 📱 Download for Android
+
+[![Download APK](https://img.shields.io/badge/Download-Android%20APK-brightgreen?logo=android&style=for-the-badge)](https://github.com/mohawkwarriors/drift-app/releases/latest/download/app-debug.apk)
+
+Or [click here to download the latest APK](https://github.com/mohawkwarriors/drift-app/releases/latest/download/app-debug.apk).
+---
 
 ## 🌟 Overview
 
