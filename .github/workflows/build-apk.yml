@@ -19,7 +19,6 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: 17
-          cache: 'gradle'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -41,7 +40,7 @@ jobs:
           fi
           [ -f "manifest.json" ] && cp manifest.json www/ || true
 
-      - name: Install Dependencies & Setup Capacitor
+      - name: Setup Capacitor & Generate Android Project
         run: |
           if [ ! -f "package.json" ]; then
             npm init -y
