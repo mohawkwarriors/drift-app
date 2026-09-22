@@ -137,13 +137,13 @@
     .streak-badge { 
       font-size: 13px; 
       font-weight: 600; 
-      letter-spacing: 0.2px;
+      letter-spacing: 0.2px; 
       opacity: 0; 
       transform: translateY(4px); 
       transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); 
-      position: absolute;
-      top: 28px;
-      white-space: nowrap;
+      position: absolute; 
+      top: 28px; 
+      white-space: nowrap; 
     }
     .day-mode .streak-badge { color: #ea580c; }
     .night-mode .streak-badge { color: #a78bfa; }
@@ -388,17 +388,17 @@
       isolation: isolate;
     }
 
-    .blob-halo {
-      position: absolute;
-      width: 280px;
-      height: 280px;
-      border-radius: 50%;
-      pointer-events: none;
-      filter: blur(65px);
-      opacity: 0.45;
-      transform: scale(1);
-      transition: opacity 2s ease, transform 2s ease, background 2s ease;
-      will-change: transform, opacity;
+    .blob-halo { 
+      position: absolute; 
+      width: 280px; 
+      height: 280px; 
+      border-radius: 50%; 
+      pointer-events: none; 
+      filter: blur(65px); 
+      opacity: 0.45; 
+      transform: scale(1); 
+      transition: opacity 2s ease, transform 2s ease, background 2s ease; 
+      will-change: transform, opacity; 
     }
     .day-mode .blob-halo { 
       background: radial-gradient(circle, rgba(251, 146, 60, 0.45), rgba(244, 63, 94, 0.25) 55%, rgba(253, 224, 71, 0.15) 75%, transparent); 
@@ -413,49 +413,49 @@
       height: 148px; 
       z-index: 2; 
       transform: translate3d(0, 130px, 0); 
-      will-change: transform;
-      cursor: pointer;
+      will-change: transform; 
+      cursor: pointer; 
     }
 
-    .blob-scaler {
-      width: 100%;
-      height: 100%;
-      transform-origin: center center;
-      transform: scale3d(1, 1, 1);
-      will-change: transform;
+    .blob-scaler { 
+      width: 100%; 
+      height: 100%; 
+      transform-origin: center center; 
+      transform: scale3d(1, 1, 1); 
+      will-change: transform; 
     }
 
     .fluid-core { 
       width: 100%; 
       height: 100%; 
-      position: relative;
-      animation: morphPureFluid 10s ease-in-out infinite alternate, fluidShimmer 16s linear infinite;
-      transition: background 2s ease, box-shadow 2s ease;
-      will-change: border-radius, background-position, transform;
-      outline: 1px solid transparent;
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
-      transform: translateZ(0);
+      position: relative; 
+      animation: morphPureFluid 10s ease-in-out infinite alternate, fluidShimmer 16s linear infinite; 
+      transition: background 2s ease, box-shadow 2s ease; 
+      will-change: border-radius, background-position, transform; 
+      outline: 1px solid transparent; 
+      -webkit-backface-visibility: hidden; 
+      backface-visibility: hidden; 
+      transform: translateZ(0); 
     }
 
     .day-mode .fluid-core { 
       background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 30%, #ff6b8b 65%, #ffd166 100%); 
-      background-size: 160% 160%;
+      background-size: 160% 160%; 
       box-shadow: 
-        inset 10px 10px 24px rgba(255, 255, 255, 0.55),
-        inset -10px -10px 24px rgba(194, 65, 12, 0.18),
-        0 20px 45px rgba(249, 115, 22, 0.22),
-        0 0 1px 0.5px rgba(255, 255, 255, 0.4);
+        inset 10px 10px 24px rgba(255, 255, 255, 0.55), 
+        inset -10px -10px 24px rgba(194, 65, 12, 0.18), 
+        0 20px 45px rgba(249, 115, 22, 0.22), 
+        0 0 1px 0.5px rgba(255, 255, 255, 0.4); 
     }
 
     .night-mode .fluid-core { 
       background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 35%, #3b82f6 70%, #0284c7 100%); 
-      background-size: 170% 170%;
+      background-size: 170% 170%; 
       box-shadow: 
-        inset 10px 10px 24px rgba(255, 255, 255, 0.35),
-        inset -10px -10px 24px rgba(15, 23, 42, 0.45),
-        0 20px 50px rgba(99, 102, 241, 0.35),
-        0 0 1px 0.5px rgba(192, 132, 252, 0.35);
+        inset 10px 10px 24px rgba(255, 255, 255, 0.35), 
+        inset -10px -10px 24px rgba(15, 23, 42, 0.45), 
+        0 20px 50px rgba(99, 102, 241, 0.35), 
+        0 0 1px 0.5px rgba(192, 132, 252, 0.35); 
     }
 
     @keyframes morphPureFluid {
@@ -479,9 +479,9 @@
     .blob-mover.idle { animation: gentleLevitate 5s ease-in-out infinite; }
 
     /* =========================================================
-       HARMONIC 16-SECOND BREATH DYNAMICS
+       BOX 16-SECOND CADENCE DYNAMICS (4-4-4-4)
        ========================================================= */
-    @keyframes fluidMove {
+    @keyframes fluidMoveBox {
       0% { 
         transform: translate3d(0, 130px, 0); 
         animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
@@ -503,7 +503,7 @@
       }
     }
 
-    @keyframes harmonicBreathScale {
+    @keyframes harmonicBreathScaleBox {
       0% { transform: scale3d(1, 1, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
       25% { transform: scale3d(1.85, 1.85, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
       50% { transform: scale3d(1.88, 1.88, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
@@ -511,7 +511,7 @@
       100% { transform: scale3d(1.02, 1.02, 1); }
     }
 
-    @keyframes haloPulse {
+    @keyframes haloPulseBox {
       0% { opacity: 0.3; transform: scale(0.95); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
       25% { opacity: 0.85; transform: scale(1.65); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
       50% { opacity: 0.88; transform: scale(1.68); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
@@ -519,11 +519,54 @@
       100% { opacity: 0.3; transform: scale(0.95); }
     }
 
-    .blob-mover.breathing { animation: fluidMove 16s infinite; }
-    .blob-mover.breathing .blob-scaler { animation: harmonicBreathScale 16s infinite; }
-    .blob-halo.breathing { animation: haloPulse 16s infinite; }
+    /* =========================================================
+       4-7-8 19-SECOND CADENCE DYNAMICS (4-7-8)
+       Inhale: 0s-4s (0% -> 21.05%)
+       Hold:   4s-11s (21.05% -> 57.89%)
+       Exhale: 11s-19s (57.89% -> 100%)
+       ========================================================= */
+    @keyframes fluidMove478 {
+      0% { 
+        transform: translate3d(0, 130px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      21.05% { 
+        transform: translate3d(0, -60px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      57.89% { 
+        transform: translate3d(0, -62px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      100% { 
+        transform: translate3d(0, 130px, 0); 
+      }
+    }
 
-    @keyframes celebrate {
+    @keyframes harmonicBreathScale478 {
+      0% { transform: scale3d(1, 1, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      21.05% { transform: scale3d(1.85, 1.85, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      57.89% { transform: scale3d(1.88, 1.88, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      100% { transform: scale3d(1, 1, 1); }
+    }
+
+    @keyframes haloPulse478 {
+      0% { opacity: 0.3; transform: scale(0.95); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      21.05% { opacity: 0.85; transform: scale(1.65); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      57.89% { opacity: 0.88; transform: scale(1.68); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      100% { opacity: 0.3; transform: scale(0.95); }
+    }
+
+    /* Active Animation Classes */
+    .blob-mover.breathing-box { animation: fluidMoveBox 16s infinite; }
+    .blob-mover.breathing-box .blob-scaler { animation: harmonicBreathScaleBox 16s infinite; }
+    .blob-halo.breathing-box { animation: haloPulseBox 16s infinite; }
+
+    .blob-mover.breathing-478 { animation: fluidMove478 19s infinite; }
+    .blob-mover.breathing-478 .blob-scaler { animation: harmonicBreathScale478 19s infinite; }
+    .blob-halo.breathing-478 { animation: haloPulse478 19s infinite; }
+
+    @keyframes celebrate { 
       0%   { transform: scale3d(1, 1, 1) translate3d(0, 130px, 0); }
       35%  { transform: scale3d(1.18, 1.18, 1) translate3d(0, 50px, 0); }
       70%  { transform: scale3d(0.95, 0.95, 1) translate3d(0, 138px, 0); }
@@ -641,7 +684,7 @@
       top: -30px; 
       font-size: 14px; 
       font-weight: 600; 
-      letter-spacing: 0.3px;
+      letter-spacing: 0.3px; 
       opacity: 0.75; 
       transition: opacity 0.4s ease; 
     }
@@ -654,15 +697,15 @@
       border-radius: 999px; 
       font-size: 15px; 
       font-weight: 600; 
-      letter-spacing: 0.3px;
+      letter-spacing: 0.3px; 
       cursor: pointer; 
       backdrop-filter: blur(20px); 
       -webkit-backdrop-filter: blur(20px); 
       transition: all 0.3s ease; 
       opacity: 0; 
-      transform: translateY(12px);
+      transform: translateY(12px); 
       pointer-events: none; 
-      outline: none;
+      outline: none; 
     }
     .btn-end.visible { 
       opacity: 1; 
@@ -675,13 +718,13 @@
       background: rgba(255, 255, 255, 0.6); 
       border: 1px solid rgba(255, 255, 255, 0.85); 
       color: #0f172a; 
-      box-shadow: 0 8px 24px -6px rgba(251, 146, 60, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.9);
+      box-shadow: 0 8px 24px -6px rgba(251, 146, 60, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.9); 
     }
     .night-mode .btn-end { 
       background: rgba(255, 255, 255, 0.08); 
       border: 1px solid rgba(255, 255, 255, 0.15); 
       color: #f8fafc; 
-      box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+      box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.12); 
     }
 
     /* Bottom-Right Settings Floating Trigger */
@@ -724,7 +767,7 @@
     }
 
     /* =========================================================
-       FROSTED SETTINGS SHEET (Translucent over Drift)
+       FROSTED SETTINGS SHEET
        ========================================================= */
     .settings-modal {
       position: absolute;
@@ -800,6 +843,69 @@
       text-transform: uppercase;
       letter-spacing: 1.5px;
       opacity: 0.55;
+    }
+
+    /* Technique Segmented Controls */
+    .technique-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .technique-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 12px 10px;
+      border-radius: 20px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      opacity: 0.6;
+    }
+    .day-mode .technique-card {
+      background: rgba(255, 255, 255, 0.45);
+      border-color: rgba(255, 255, 255, 0.7);
+      color: #1e293b;
+    }
+    .night-mode .technique-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+    }
+
+    .technique-card.active {
+      opacity: 1;
+      transform: scale(1.02);
+    }
+    .day-mode .technique-card.active {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(255, 255, 255, 1);
+      box-shadow: 0 4px 16px rgba(234, 88, 12, 0.18);
+    }
+    .night-mode .technique-card.active {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(192, 132, 252, 0.35);
+      box-shadow: 0 4px 18px rgba(168, 85, 247, 0.3);
+    }
+
+    .technique-name {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .day-mode .technique-card.active .technique-name { color: #ea580c; }
+    .night-mode .technique-card.active .technique-name { color: #c084fc; }
+
+    .technique-desc {
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0.65;
+      letter-spacing: 0.4px;
     }
 
     /* Duration Presets: Brief, Reset, Deep */
@@ -1001,7 +1107,7 @@
     }
 
     /* =========================================================
-       WHEN SETTINGS ARE OPEN: HIDE BACKGROUND TEXT BUT KEEP BLOB
+       SETTINGS VISIBILITY
        ========================================================= */
     .settings-active .top-bar .brand-group,
     .settings-active .top-bar .theme-switch-btn,
@@ -1073,7 +1179,7 @@
       <!-- Atmospheric Aura -->
       <div class="blob-halo" id="blobHalo"></div>
 
-      <!-- Unified Pure Fluid (Always running behind settings) -->
+      <!-- Unified Pure Fluid -->
       <div class="blob-mover idle" id="bloopMover">
         <div class="blob-scaler">
           <div class="fluid-core"></div>
@@ -1099,6 +1205,21 @@
       <div class="settings-header">
         <div class="settings-title">Preferences</div>
         <button class="settings-close-btn" id="settingsCloseBtn" aria-label="Close">✕</button>
+      </div>
+
+      <!-- Breathing Pattern Section -->
+      <div class="settings-section">
+        <div class="section-label">Breathing Technique</div>
+        <div class="technique-group">
+          <div class="technique-card active" id="techniqueBox">
+            <span class="technique-name">Box</span>
+            <span class="technique-desc">4 · 4 · 4 · 4</span>
+          </div>
+          <div class="technique-card" id="technique478">
+            <span class="technique-name">Relax</span>
+            <span class="technique-desc">4 · 7 · 8</span>
+          </div>
+        </div>
       </div>
 
       <!-- Duration Presets Section -->
@@ -1207,6 +1328,8 @@
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsModal = document.getElementById('settingsModal');
     const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+    const techniqueBox = document.getElementById('techniqueBox');
+    const technique478 = document.getElementById('technique478');
     const slotSelects = [
       document.getElementById('slotSelect0'),
       document.getElementById('slotSelect1'),
@@ -1235,33 +1358,72 @@
     let userDurations = [1, 2, 4];
     let selectedDurationIdx = 1; // "Reset" by default
 
-    // Convert Minutes to 16-second box cycles
+    // Technique Configurations
+    let activeTechnique = 'box'; // 'box' or '478'
+
+    const TECHNIQUES = {
+      box: {
+        cycleLength: 16,
+        animClass: 'breathing-box',
+        timeline: [
+          { phase: 'Inhale', num: 1, dir: 'up',   isPhaseStart: true },
+          { phase: 'Inhale', num: 2, dir: 'up',   isPhaseStart: false },
+          { phase: 'Inhale', num: 3, dir: 'up',   isPhaseStart: false },
+          { phase: 'Inhale', num: 4, dir: 'up',   isPhaseStart: false },
+
+          { phase: 'Hold',   num: 4, dir: 'down', isPhaseStart: true },
+          { phase: 'Hold',   num: 3, dir: 'down', isPhaseStart: false },
+          { phase: 'Hold',   num: 2, dir: 'down', isPhaseStart: false },
+          { phase: 'Hold',   num: 1, dir: 'down', isPhaseStart: false },
+
+          { phase: 'Exhale', num: 1, dir: 'up',   isPhaseStart: true },
+          { phase: 'Exhale', num: 2, dir: 'up',   isPhaseStart: false },
+          { phase: 'Exhale', num: 3, dir: 'up',   isPhaseStart: false },
+          { phase: 'Exhale', num: 4, dir: 'up',   isPhaseStart: false },
+
+          { phase: 'Hold',   num: 4, dir: 'down', isPhaseStart: true },
+          { phase: 'Hold',   num: 3, dir: 'down', isPhaseStart: false },
+          { phase: 'Hold',   num: 2, dir: 'down', isPhaseStart: false },
+          { phase: 'Hold',   num: 1, dir: 'down', isPhaseStart: false }
+        ]
+      },
+      '478': {
+        cycleLength: 19,
+        animClass: 'breathing-478',
+        timeline: [
+          // Inhale (4 seconds)
+          { phase: 'Inhale', num: 1, dir: 'up',   isPhaseStart: true },
+          { phase: 'Inhale', num: 2, dir: 'up',   isPhaseStart: false },
+          { phase: 'Inhale', num: 3, dir: 'up',   isPhaseStart: false },
+          { phase: 'Inhale', num: 4, dir: 'up',   isPhaseStart: false },
+
+          // Hold (7 seconds countdown)
+          { phase: 'Hold',   num: 7, dir: 'down', isPhaseStart: true },
+          { phase: 'Hold',   num: 6, dir: 'down', isPhaseStart: false },
+          { phase: 'Hold',   num: 5, dir: 'down', isPhaseStart: false },
+          { phase: 'Hold',   num: 4, dir: 'down', isPhaseStart: false },
+          { phase: 'Hold',   num: 3, dir: 'down', isPhaseStart: false },
+          { phase: 'Hold',   num: 2, dir: 'down', isPhaseStart: false },
+          { phase: 'Hold',   num: 1, dir: 'down', isPhaseStart: false },
+
+          // Exhale (8 seconds slow release)
+          { phase: 'Exhale', num: 1, dir: 'up',   isPhaseStart: true },
+          { phase: 'Exhale', num: 2, dir: 'up',   isPhaseStart: false },
+          { phase: 'Exhale', num: 3, dir: 'up',   isPhaseStart: false },
+          { phase: 'Exhale', num: 4, dir: 'up',   isPhaseStart: false },
+          { phase: 'Exhale', num: 5, dir: 'up',   isPhaseStart: false },
+          { phase: 'Exhale', num: 6, dir: 'up',   isPhaseStart: false },
+          { phase: 'Exhale', num: 7, dir: 'up',   isPhaseStart: false },
+          { phase: 'Exhale', num: 8, dir: 'up',   isPhaseStart: false }
+        ]
+      }
+    };
+
+    // Calculate total cycles for active pattern and time
     function getCyclesForMinutes(m) {
-      return Math.round((m * 60) / 16);
+      const cycleLength = TECHNIQUES[activeTechnique].cycleLength;
+      return Math.round((m * 60) / cycleLength);
     }
-
-    // 16-Second Unified Cadence
-    const CYCLE_TIMELINE = [
-      { phase: 'Inhale', num: 1, dir: 'up',   isPhaseStart: true },
-      { phase: 'Inhale', num: 2, dir: 'up',   isPhaseStart: false },
-      { phase: 'Inhale', num: 3, dir: 'up',   isPhaseStart: false },
-      { phase: 'Inhale', num: 4, dir: 'up',   isPhaseStart: false },
-
-      { phase: 'Hold',   num: 4, dir: 'down', isPhaseStart: true },
-      { phase: 'Hold',   num: 3, dir: 'down', isPhaseStart: false },
-      { phase: 'Hold',   num: 2, dir: 'down', isPhaseStart: false },
-      { phase: 'Hold',   num: 1, dir: 'down', isPhaseStart: false },
-
-      { phase: 'Exhale', num: 1, dir: 'up',   isPhaseStart: true },
-      { phase: 'Exhale', num: 2, dir: 'up',   isPhaseStart: false },
-      { phase: 'Exhale', num: 3, dir: 'up',   isPhaseStart: false },
-      { phase: 'Exhale', num: 4, dir: 'up',   isPhaseStart: false },
-
-      { phase: 'Hold',   num: 4, dir: 'down', isPhaseStart: true },
-      { phase: 'Hold',   num: 3, dir: 'down', isPhaseStart: false },
-      { phase: 'Hold',   num: 2, dir: 'down', isPhaseStart: false },
-      { phase: 'Hold',   num: 1, dir: 'down', isPhaseStart: false }
-    ];
 
     function initApp() {
       setInitialTheme();
@@ -1281,11 +1443,24 @@
     /* =========================================================
        SETTINGS & PERSISTENCE
        ========================================================= */
+    function setTechnique(tech) {
+      if (activeTechnique === tech) return;
+      activeTechnique = tech;
+      techniqueBox.classList.toggle('active', tech === 'box');
+      technique478.classList.toggle('active', tech === '478');
+      rebuildCycleSlots();
+      saveSettings();
+      triggerSubtleHaptic();
+    }
+
     function loadSettings() {
       const saved = localStorage.getItem('driftSettings_v2');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
+          if (parsed.technique && TECHNIQUES[parsed.technique]) {
+            activeTechnique = parsed.technique;
+          }
           if (Array.isArray(parsed.durations) && parsed.durations.length === 3) {
             userDurations = parsed.durations;
           }
@@ -1306,6 +1481,9 @@
         } catch(e) {}
       }
 
+      techniqueBox.classList.toggle('active', activeTechnique === 'box');
+      technique478.classList.toggle('active', activeTechnique === '478');
+
       slotSelects.forEach((sel, i) => {
         sel.value = userDurations[i];
       });
@@ -1313,6 +1491,7 @@
 
     function saveSettings() {
       const settings = {
+        technique: activeTechnique,
         durations: userDurations,
         morningEnabled: morningReminderToggle.checked,
         morningTime: morningTimeInput.value,
@@ -1336,6 +1515,9 @@
     function initSettingsEvents() {
       settingsBtn.addEventListener('click', openSettings);
       settingsCloseBtn.addEventListener('click', closeSettings);
+
+      techniqueBox.addEventListener('click', () => setTechnique('box'));
+      technique478.addEventListener('click', () => setTechnique('478'));
 
       slotSelects.forEach((sel, i) => {
         sel.addEventListener('change', (e) => {
@@ -1374,7 +1556,6 @@
         const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         const todayStr = now.toDateString();
 
-        // Check Morning Reminder
         if (morningReminderToggle.checked && currentTimeStr === morningTimeInput.value) {
           const lastMorning = localStorage.getItem('driftLastMorningDate');
           if (lastMorning !== todayStr) {
@@ -1386,7 +1567,6 @@
           }
         }
 
-        // Check Evening Reminder
         if (eveningReminderToggle.checked && currentTimeStr === eveningTimeInput.value) {
           const lastEvening = localStorage.getItem('driftLastEveningDate');
           if (lastEvening !== todayStr) {
@@ -1552,7 +1732,8 @@
     }
 
     function renderStep(second) {
-      const step = CYCLE_TIMELINE[second];
+      const timeline = TECHNIQUES[activeTechnique].timeline;
+      const step = timeline[second];
       updatePhaseLabel(step.phase);
       crossfadeNumber(step.num, step.dir);
 
@@ -1567,17 +1748,19 @@
       completedCycles = 0;
       currentPhaseName = '';
       
+      const config = TECHNIQUES[activeTechnique];
+
       blobMover.classList.remove('idle', 'done');
       endBtn.classList.add('visible');
-      settingsBtn.classList.add('hidden'); // Hide settings button when breathing
+      settingsBtn.classList.add('hidden');
       streakBadge.classList.remove('visible');
       tapInstruction.classList.add('hidden');
       durationContainer.classList.add('hidden');
       phaseWrap.classList.add('visible');
       cyclesRow.classList.add('visible');
       
-      blobMover.classList.add('breathing');
-      blobHalo.classList.add('breathing');
+      blobMover.classList.add(config.animClass);
+      blobHalo.classList.add(config.animClass);
       
       updateCycleIndicators();
       renderStep(currentCycleSecond);
@@ -1587,7 +1770,7 @@
       cycleInterval = setInterval(() => {
         currentCycleSecond++;
 
-        if (currentCycleSecond >= CYCLE_TIMELINE.length) {
+        if (currentCycleSecond >= config.timeline.length) {
           currentCycleSecond = 0;
           completedCycles++;
           updateCycleIndicators();
@@ -1606,12 +1789,12 @@
       isBreathing = false;
       clearInterval(cycleInterval);
       
-      blobMover.classList.remove('breathing', 'done');
-      blobHalo.classList.remove('breathing');
+      blobMover.classList.remove('breathing-box', 'breathing-478', 'done');
+      blobHalo.classList.remove('breathing-box', 'breathing-478');
       blobMover.classList.add('idle');
       
       endBtn.classList.remove('visible');
-      settingsBtn.classList.remove('hidden'); // Restore settings button
+      settingsBtn.classList.remove('hidden');
       tapInstruction.classList.remove('hidden');
       durationContainer.classList.remove('hidden');
       phaseWrap.classList.remove('visible');
@@ -1633,8 +1816,8 @@
       isBreathing = false;
       clearInterval(cycleInterval);
       
-      blobMover.classList.remove('breathing');
-      blobHalo.classList.remove('breathing');
+      blobMover.classList.remove('breathing-box', 'breathing-478');
+      blobHalo.classList.remove('breathing-box', 'breathing-478');
       blobMover.classList.add('done');
       
       endBtn.classList.remove('visible');
