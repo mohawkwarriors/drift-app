@@ -47,13 +47,13 @@
       transition: background 2s cubic-bezier(0.4, 0, 0.2, 1); 
     }
     
-    /* Morning: First light of dawn breaking into soft sky */
+    /* Morning Theme */
     body.day-mode { 
       background: radial-gradient(circle at 50% 25%, #fff7ed 0%, #ffedd5 35%, #fed7aa 65%, #e0e7ff 100%); 
       color: #1e293b; 
     }
     
-    /* Night: Deep celestial velvet */
+    /* Night Theme */
     body.night-mode { 
       background: radial-gradient(circle at 50% 32%, #0f1322 0%, #080a14 55%, #030408 100%); 
       color: #f1f5f9; 
@@ -480,94 +480,74 @@
     .blob-mover.idle { animation: gentleLevitate 5s ease-in-out infinite; }
 
     /* =========================================================
-       BOX 16-SECOND CADENCE DYNAMICS (4-4-4-4)
+       BREATHING CADENCE KEYFRAMES
        ========================================================= */
     @keyframes fluidMoveBox {
-      0% { 
-        transform: translate3d(0, 130px, 0); 
-        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
-      }
-      25% { 
-        transform: translate3d(0, -60px, 0); 
-        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
-      }
-      50% { 
-        transform: translate3d(0, -62px, 0); 
-        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
-      }
-      75% { 
-        transform: translate3d(0, 130px, 0); 
-        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
-      }
-      100% { 
-        transform: translate3d(0, 130px, 0); 
-      }
+      0% { transform: translate3d(0, 130px, 0); }
+      25% { transform: translate3d(0, -60px, 0); }
+      50% { transform: translate3d(0, -62px, 0); }
+      75% { transform: translate3d(0, 130px, 0); }
+      100% { transform: translate3d(0, 130px, 0); }
     }
 
     @keyframes harmonicBreathScaleBox {
-      0% { transform: scale3d(1, 1, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      25% { transform: scale3d(1.85, 1.85, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      50% { transform: scale3d(1.88, 1.88, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      75% { transform: scale3d(1, 1, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      0% { transform: scale3d(1, 1, 1); }
+      25% { transform: scale3d(1.85, 1.85, 1); }
+      50% { transform: scale3d(1.88, 1.88, 1); }
+      75% { transform: scale3d(1, 1, 1); }
       100% { transform: scale3d(1.02, 1.02, 1); }
     }
 
     @keyframes haloPulseBox {
-      0% { opacity: 0.3; transform: scale(0.95); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      25% { opacity: 0.85; transform: scale(1.65); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      50% { opacity: 0.88; transform: scale(1.68); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      75% { opacity: 0.3; transform: scale(0.95); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+      0% { opacity: 0.3; transform: scale(0.95); }
+      25% { opacity: 0.85; transform: scale(1.65); }
+      50% { opacity: 0.88; transform: scale(1.68); }
+      75% { opacity: 0.3; transform: scale(0.95); }
       100% { opacity: 0.3; transform: scale(0.95); }
     }
 
-    /* =========================================================
-       4-7-8 19-SECOND CADENCE DYNAMICS (4-7-8)
-       ========================================================= */
     @keyframes fluidMove478 {
-      0% { 
-        transform: translate3d(0, 130px, 0); 
-        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
-      }
-      21.05% { 
-        transform: translate3d(0, -60px, 0); 
-        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
-      }
-      57.89% { 
-        transform: translate3d(0, -62px, 0); 
-        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
-      }
-      100% { 
-        transform: translate3d(0, 130px, 0); 
-      }
+      0% { transform: translate3d(0, 130px, 0); }
+      21.05% { transform: translate3d(0, -60px, 0); }
+      57.89% { transform: translate3d(0, -62px, 0); }
+      100% { transform: translate3d(0, 130px, 0); }
     }
 
     @keyframes harmonicBreathScale478 {
-      0% { transform: scale3d(1, 1, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      21.05% { transform: scale3d(1.85, 1.85, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      57.89% { transform: scale3d(1.88, 1.88, 1); animation-timing-function: cubic-bezier(0.45, 0.05, 0The complete, updated file has been generated with both **Screen Wake Lock** and **Haptic Feedback** implemented:
+      0% { transform: scale3d(1, 1, 1); }
+      21.05% { transform: scale3d(1.85, 1.85, 1); }
+      57.89% { transform: scale3d(1.88, 1.88, 1); }
+      100% { transform: scale3d(1, 1, 1); }
+    }
 
-[file-tag: index.html]
+    @keyframes haloPulse478 {
+      0% { opacity: 0.3; transform: scale(0.95); }
+      21.05% { opacity: 0.85; transform: scale(1.65); }
+      57.89% { opacity: 0.88; transform: scale(1.68); }
+      100% { opacity: 0.3; transform: scale(0.95); }
+    }
 
----
+    /* Active Animation Classes with Shared Timing Curve */
+    .blob-mover.breathing-box { animation: fluidMoveBox 16s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+    .blob-mover.breathing-box .blob-scaler { animation: harmonicBreathScaleBox 16s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+    .blob-halo.breathing-box { animation: haloPulseBox 16s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
 
-### What Was Added & Implemented
+    .blob-mover.breathing-478 { animation: fluidMove478 19s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+    .blob-mover.breathing-478 .blob-scaler { animation: harmonicBreathScale478 19s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+    .blob-halo.breathing-478 { animation: haloPulse478 19s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
 
-1. **Screen Wake Lock (Keeps Display On):**
-   * Uses `navigator.wakeLock.request('screen')` immediately upon `startSession()`.
-   * Releases the wake lock upon `stopSession()` or `finishSession()`.
-   * Automatically re-acquires the lock if you switch away from the app and return (`visibilitychange` listener).
+    @keyframes celebrate { 
+      0%   { transform: scale3d(1, 1, 1) translate3d(0, 130px, 0); }
+      35%  { transform: scale3d(1.18, 1.18, 1) translate3d(0, 50px, 0); }
+      70%  { transform: scale3d(0.95, 0.95, 1) translate3d(0, 138px, 0); }
+      100% { transform: scale3d(1, 1, 1) translate3d(0, 130px, 0); }
+    }
+    .blob-mover.done { animation: celebrate 1.2s cubic-bezier(0.25, 1, 0.5, 1); }
 
-2. **Phase-Specific Haptic Feedback:**
-   * **Inhale:** Double rising tap (`[40, 50, 40] ms`) signaling lung expansion.
-   * **Hold:** Single crisp tap (`30 ms`) indicating a steady breath hold.
-   * **Exhale:** Smooth release vibration (`70 ms`) signaling expiration.
-   * **Session Complete:** Gentle multi-pulse pattern (`[50, 80, 50, 80] ms`).
-
-3. **Preferences Toggle:**
-   * Added a **Haptic Feedback** switch in your **Preferences** sheet under a new *Sensory Feedback* section so vibrations can be toggled on or off at any time (saved to `localStorage`).
-
----
-
-### How to Apply:
-1. Download or open `index.html` from the card above and replace the `index.html` file in your repository root.
-2. Commit and push to `main` to trigger the build workflow.
+    /* =========================================================
+       CALMING INK-DRIFT NUMBERS & PHASE
+       ========================================================= */
+    .phase-wrap {
+      position: absolute;
+      transform: translate3d(0, -60px, 0);
+      display:
