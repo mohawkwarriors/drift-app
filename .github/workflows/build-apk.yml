@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Native Android APK
@@ -184,7 +187,7 @@ jobs:
           bg_file = os.path.join(res_dir, 'values', 'ic_launcher_background.xml')
           os.makedirs(os.path.dirname(bg_file), exist_ok=True)
           with open(bg_file, 'w') as f:
-              f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#F3E1D5</color>\n</resources>\n')
+              f.write('<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <color name=\"ic_launcher_background\">#F3E1D5</color>\n</resources>\n')
 
           anydpi_dir = os.path.join(res_dir, 'mipmap-anydpi-v26')
           os.makedirs(anydpi_dir, exist_ok=True)
@@ -214,3 +217,17 @@ jobs:
           name: Drift-App-Debug-APK
           path: android/app/build/outputs/apk/**/*.apk
           retention-days: 30
+
+      - name: Publish APK to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          apk_file=$(ls android/app/build/outputs/apk/debug/*.apk 2>/dev/null | head -n 1)
+          if [ -f "$apk_file" ]; then
+            cp "$apk_file" drift-app.apk
+            gh release upload latest drift-app.apk --clobber || gh release create latest drift-app.apk --title "Latest Release" --notes "Automated build from commit ${{ github.sha }}"
+            echo "Successfully published drift-app.apk to latest release!"
+          else
+            echo "Error: APK file not found!"
+            exit 1
+          fi
