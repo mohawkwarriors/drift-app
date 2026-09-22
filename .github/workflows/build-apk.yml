@@ -55,16 +55,71 @@ jobs:
           # Align Kotlin libraries to eliminate duplicate class conflicts
           printf "\nconfigurations.all {\n  resolutionStrategy {\n    force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'\n    force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'\n    force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'\n  }\n}\n" >> android/app/build.gradle
 
-      - name: Generate and Inject Blob App Icons
+          # Bump versionCode to force Android to invalidate any cached installation data
+          sed -i "s/versionCode 1/versionCode $(date +%s)/g" android/app/build.gradle
+
+      - name: Configure Fullscreen & Inject App Icons
         run: |
           python3 -m pip install Pillow
           python3 -c "
           import os, glob
-          from PIL import Image, ImageDraw, ImageFilter
+          from PIL import Image, ImageDraw
 
           res_dir = 'android/app/src/main/res'
 
-          # 1. Remove default Capacitor vector overrides that take precedence over mipmap PNGs
+          # -------------------------------------------------------------
+          # 1. HIDE STATUS BAR (Immersive Fullscreen)
+          # -------------------------------------------------------------
+          styles_file = os.path.join(res_dir, 'values', 'styles.xml')
+          if os.path.exists(styles_file):
+              with open(styles_file, 'r') as f:
+                  styles_content = f.read()
+              fullscreen_flags = '''        <item name=\"android:windowFullscreen\">true</item>
+          <item name=\"android:windowContentOverlay\">@null</item>
+          <item name=\"android:windowLayoutInDisplayCutoutMode\">shortEdges</item>
+  '''
+              if 'android:windowFullscreen' not in styles_content:
+                  styles_content = styles_content.replace(
+                      '<style name=\"AppTheme.NoActionBar\" parent=\"Theme.AppCompat.DayNight.NoActionBar\">\n',
+                      '<style name=\"AppTheme.NoActionBar\" parent=\"Theme.AppCompat.DayNight.NoActionBar\">\n' + fullscreen_flags
+                  )
+                  styles_content = styles_content.replace(
+                      '<style name=\"AppTheme.NoActionBarLaunch\" parent=\"AppTheme.NoActionBar\">\n',
+                      '<style name=\"AppTheme.NoActionBarLaunch\" parent=\"AppTheme.NoActionBar\">\n' + fullscreen_flags
+                  )
+                  with open(styles_file, 'w') as f:
+                      f.write(styles_content)
+                  print('Fullscreen theme successfully applied in styles.xml')
+
+          # Update MainActivity.java for modern WindowInsetsController status bar hiding
+          main_activity_file = 'android/app/src/main/java/com/mohawkwarriors/drift/MainActivity.java'
+          if os.path.exists(main_activity_file):
+              with open(main_activity_file, 'w') as f:
+                  f.write('''package com.mohawkwarriors.drift;
+
+          import android.os.Bundle;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+                  if (controller != null) {
+                      controller.hide(WindowInsetsCompat.Type.statusBars());
+                      controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                  }
+              }
+          }
+          ''')
+              print('Immersive mode configured in MainActivity.java')
+
+          # -------------------------------------------------------------
+          # 2. REMOVE DEFAULT CAPACITOR VECTOR OVERRIDES
+          # -------------------------------------------------------------
           for pattern in ['drawable*/ic_launcher_foreground.xml', 'drawable*/ic_launcher_background.xml']:
               for f in glob.glob(os.path.join(res_dir, pattern)):
                   try:
@@ -73,7 +128,9 @@ jobs:
                   except Exception as e:
                       print(f'Could not remove {f}: {e}')
 
-          # 2. Locate or create the source icon
+          # -------------------------------------------------------------
+          # 3. LOAD SOURCE ICON
+          # -------------------------------------------------------------
           candidates = ['icon.png', 'Icon.png', 'blob.png', 'assets/icon.png', 'assets/icon-only.png']
           icon_path = next((c for c in candidates if os.path.exists(c)), None)
 
@@ -81,7 +138,7 @@ jobs:
               print(f'Using uploaded icon: {icon_path}')
               img = Image.open(icon_path).convert('RGBA')
           else:
-              print('No icon image found in repo. Generating fluid blob icon automatically...')
+              print('No icon image found in repo. Generating fallback...')
               size = 1024
               img = Image.new('RGBA', (size, size), (243, 225, 213, 255))
               center = size // 2
@@ -113,7 +170,9 @@ jobs:
               out.paste(resized, (0, 0), mask=mask)
               return out
 
-          # 3. Inject standard, round, and adaptive foreground icons into all density folders
+          # -------------------------------------------------------------
+          # 4. INJECT ICONS ACROSS ALL MIPMAP DENSITIES
+          # -------------------------------------------------------------
           sizes = {
               'mipmap-mdpi': (48, 108),
               'mipmap-hdpi': (72, 162),
@@ -128,24 +187,16 @@ jobs:
               make_circle(img, std_size).save(os.path.join(target_dir, 'ic_launcher_round.png'))
               img.resize((fg_size, fg_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher_foreground.png'))
 
-          # 4. Inject rounded icons into www/ for web/PWA runtime
-          web_targets = {
-              'www/apple-touch-icon.png': 180,
-              'www/android-chrome-192x192.png': 192,
-              'www/android-chrome-512x512.png': 512,
-              'www/favicon-32x32.png': 32,
-              'www/favicon-16x16.png': 16
-          }
-          for p, s in web_targets.items():
-              make_rounded(img, s).save(p)
-
-          # 5. Set the adaptive background color to match the cream/peach background
+          # -------------------------------------------------------------
+          # 5. ADAPTIVE BACKGROUND & XML DEFINITIONS
+          # -------------------------------------------------------------
           bg_file = os.path.join(res_dir, 'values', 'ic_launcher_background.xml')
           os.makedirs(os.path.dirname(bg_file), exist_ok=True)
           with open(bg_file, 'w') as f:
               f.write('<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <color name=\"ic_launcher_background\">#F3E1D5</color>\n</resources>\n')
 
-          # 6. Ensure adaptive icon XMLs explicitly point to @mipmap/ic_launcher_foreground
+          anydpi_dir = os.path.join(D5</color>\n</resources>\n')
+
           anydpi_dir = os.path.join(res_dir, 'mipmap-anydpi-v26')
           os.makedirs(anydpi_dir, exist_ok=True)
           adaptive_xml = '''<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<adaptive-icon xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <background android:drawable=\"@color/ic_launcher_background\"/>\n    <foreground android:drawable=\"@mipmap/ic_launcher_foreground\"/>\n</adaptive-icon>\n'''
@@ -153,7 +204,7 @@ jobs:
               with open(os.path.join(anydpi_dir, xml_name), 'w') as f:
                   f.write(adaptive_xml)
 
-          print('All Android launcher, adaptive, and web assets successfully injected!')
+          print('All Android launcher, adaptive, and fullscreen configs injected!')
           "
 
       - name: Build Android Debug APK
