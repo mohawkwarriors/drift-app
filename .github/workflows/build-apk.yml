@@ -62,11 +62,11 @@ jobs:
           # Bump versionCode to force Android to invalidate cached app data
           sed -i "s/versionCode 1/versionCode $(date +%s)/g" android/app/build.gradle
 
-      - name: Configure Fullscreen & Inject App Icons
+      - name: Configure Fullscreen & Inject Squircle App Icons
         run: |
           python3 -m pip install Pillow
           python3 - << 'PYEOF'
-          import os, glob
+          import os, glob, re, shutil
           from PIL import Image, ImageDraw
 
           res_dir = 'android/app/src/main/res'
@@ -128,7 +128,23 @@ jobs:
                   except Exception as e:
                       print(f'Could not remove {f}: {e}')
 
-          # 4. LOAD SOURCE ICON
+          # 4. REMOVE android:roundIcon FROM AndroidManifest.xml
+          manifest_file = 'android/app/src/main/AndroidManifest.xml'
+          if os.path.exists(manifest_file):
+              with open(manifest_file, 'r') as f:
+                  mf = f.read()
+              mf = re.sub(r'\s*android:roundIcon="[^"]*"', '', mf)
+              with open(manifest_file, 'w') as f:
+                  f.write(mf)
+              print('Removed android:roundIcon attribute from AndroidManifest.xml')
+
+          # 5. REMOVE mipmap-anydpi-v26 TO PREVENT LAUNCHER CIRCLE-MASKING
+          anydpi_dir = os.path.join(res_dir, 'mipmap-anydpi-v26')
+          if os.path.exists(anydpi_dir):
+              shutil.rmtree(anydpi_dir)
+              print('Removed mipmap-anydpi-v26 directory')
+
+          # 6. LOAD SOURCE ICON
           candidates = ['icon.png', 'Icon.png', 'blob.png', 'assets/icon.png', 'assets/icon-only.png']
           icon_path = next((c for c in candidates if os.path.exists(c)), None)
 
@@ -156,53 +172,23 @@ jobs:
               out.paste(resized, (0, 0), mask=mask)
               return out
 
-          def make_circle(source_img, size):
-              resized = source_img.resize((size, size), Image.Resampling.LANCZOS)
-              scale = 4
-              w, h = size * scale, size * scale
-              mask = Image.new('L', (w, h), 0)
-              draw = ImageDraw.Draw(mask)
-              draw.ellipse([0, 0, w, h], fill=255)
-              mask = mask.resize((size, size), Image.Resampling.LANCZOS)
-              out = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-              out.paste(resized, (0, 0), mask=mask)
-              return out
-
-          # 5. INJECT ICONS ACROSS ALL MIPMAP DENSITIES
+          # 7. INJECT SQUIRCLE ICONS INTO ALL MIPMAP DENSITIES
           sizes = {
-              'mipmap-mdpi': (48, 108),
-              'mipmap-hdpi': (72, 162),
-              'mipmap-xhdpi': (96, 216),
-              'mipmap-xxhdpi': (144, 324),
-              'mipmap-xxxhdpi': (192, 432)
+              'mipmap-mdpi': 48,
+              'mipmap-hdpi': 72,
+              'mipmap-xhdpi': 96,
+              'mipmap-xxhdpi': 144,
+              'mipmap-xxxhdpi': 192
           }
-          for folder, (std_size, fg_size) in sizes.items():
+          for folder, std_size in sizes.items():
               target_dir = os.path.join(res_dir, folder)
               os.makedirs(target_dir, exist_ok=True)
-              make_rounded(img, std_size).save(os.path.join(target_dir, 'ic_launcher.png'))
-              make_circle(img, std_size).save(os.path.join(target_dir, 'ic_launcher_round.png'))
-              img.resize((fg_size, fg_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher_foreground.png'))
+              squircle_icon = make_rounded(img, std_size)
+              squircle_icon.save(os.path.join(target_dir, 'ic_launcher.png'))
+              # Also set ic_launcher_round to the squircle in case the launcher requests it
+              squircle_icon.save(os.path.join(target_dir, 'ic_launcher_round.png'))
 
-          # 6. ADAPTIVE BACKGROUND & XML DEFINITIONS
-          bg_file = os.path.join(res_dir, 'values', 'ic_launcher_background.xml')
-          os.makedirs(os.path.dirname(bg_file), exist_ok=True)
-          with open(bg_file, 'w') as f:
-              f.write('<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <color name=\"ic_launcher_background\">#F3E1D5</color>\n</resources>\n')
-
-          anydpi_dir = os.path.join(res_dir, 'mipmap-anydpi-v26')
-          os.makedirs(anydpi_dir, exist_ok=True)
-          adaptive_xml = (
-              '<?xml version="1.0" encoding="utf-8"?>\n'
-              '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
-              '    <background android:drawable="@color/ic_launcher_background"/>\n'
-              '    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n'
-              '</adaptive-icon>\n'
-          )
-          for xml_name in ['ic_launcher.xml', 'ic_launcher_round.xml']:
-              with open(os.path.join(anydpi_dir, xml_name), 'w') as f:
-                  f.write(adaptive_xml)
-
-          print('All Android launcher, adaptive, and fullscreen configs injected!')
+          print('All squircle rounded icons successfully injected!')
           PYEOF
 
       - name: Build Android Debug APK
