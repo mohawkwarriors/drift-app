@@ -91,10 +91,11 @@ jobs:
           def make_rounded(source_img, size, radius_ratio=0.2237):
               resized = source_img.resize((size, size), Image.Resampling.LANCZOS)
               scale = 4
-              mask = Image.new('L', (size * scale, size * scale), 0)
+              w, h = size * scale, size * scale
+              mask = Image.new('L', (w, h), 0)
               draw = ImageDraw.Draw(mask)
-              radius = int(mask.size[0] * radius_ratio)
-              draw.rounded_rectangle([0, 0, mask.size[0], mask.size], radius=radius, fill=255)
+              radius = int(w * radius_ratio)
+              draw.rounded_rectangle([0, 0, w, h], radius=radius, fill=255)
               mask = mask.resize((size, size), Image.Resampling.LANCZOS)
               out = Image.new('RGBA', (size, size), (0, 0, 0, 0))
               out.paste(resized, (0, 0), mask=mask)
@@ -103,9 +104,10 @@ jobs:
           def make_circle(source_img, size):
               resized = source_img.resize((size, size), Image.Resampling.LANCZOS)
               scale = 4
-              mask = Image.new('L', (size * scale, size * scale), 0)
+              w, h = size * scale, size * scale
+              mask = Image.new('L', (w, h), 0)
               draw = ImageDraw.Draw(mask)
-              draw.ellipse([0, 0, size * scale, size * scale], fill=255)
+              draw.ellipse([0, 0, w, h], fill=255)
               mask = mask.resize((size, size), Image.Resampling.LANCZOS)
               out = Image.new('RGBA', (size, size), (0, 0, 0, 0))
               out.paste(resized, (0, 0), mask=mask)
@@ -126,7 +128,7 @@ jobs:
               make_circle(img, std_size).save(os.path.join(target_dir, 'ic_launcher_round.png'))
               img.resize((fg_size, fg_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher_foreground.png'))
 
-          # 4. Also inject rounded icons into www/ for web/PWA runtime
+          # 4. Inject rounded icons into www/ for web/PWA runtime
           web_targets = {
               'www/apple-touch-icon.png': 180,
               'www/android-chrome-192x192.png': 192,
