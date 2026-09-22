@@ -28,15 +28,16 @@ jobs:
       - name: Prepare Web Assets
         run: |
           mkdir -p www
-          if [ -f "drift_20260920.html" ]; then
-            cp drift_20260920.html www/index.html
-          elif [ -f "index.html" ]; then
+          # Prioritize active index.html with your latest features and improvements
+          if [ -f "index.html" ]; then
             cp index.html www/index.html
+          elif [ -f "drift_20260920.html" ]; then
+            cp drift_20260920.html www/index.html
           else
             first_html=$(ls *.html 2>/dev/null | head -n 1)
             [ -n "$first_html" ] && cp "$first_html" www/index.html
           fi
-          cp *.html *.js *.css *.json *.png *.svg www/ 2>/dev/null || true
+          cp *.js *.css *.json *.png *.svg www/ 2>/dev/null || true
 
       - name: Setup Capacitor & Generate Android Project
         run: |
@@ -55,7 +56,7 @@ jobs:
           # Align Kotlin libraries to eliminate duplicate class conflicts
           printf "\nconfigurations.all {\n  resolutionStrategy {\n    force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'\n    force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'\n    force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'\n  }\n}\n" >> android/app/build.gradle
 
-          # Bump versionCode to force Android to invalidate any cached installation data
+          # Bump versionCode to force Android to invalidate cached app data
           sed -i "s/versionCode 1/versionCode $(date +%s)/g" android/app/build.gradle
 
       - name: Configure Fullscreen & Inject App Icons
