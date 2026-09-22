@@ -59,9 +59,21 @@ jobs:
         run: |
           python3 -m pip install Pillow
           python3 -c "
-          import os, math
+          import os, glob
           from PIL import Image, ImageDraw, ImageFilter
 
+          res_dir = 'android/app/src/main/res'
+
+          # 1. Remove default Capacitor vector overrides that take precedence over mipmap PNGs
+          for pattern in ['drawable*/ic_launcher_foreground.xml', 'drawable*/ic_launcher_background.xml']:
+              for f in glob.glob(os.path.join(res_dir, pattern)):
+                  try:
+                      os.remove(f)
+                      print(f'Removed vector override: {f}')
+                  except Exception as e:
+                      print(f'Could not remove {f}: {e}')
+
+          # 2. Locate or create the source icon
           candidates = ['icon.png', 'Icon.png', 'blob.png', 'assets/icon.png', 'assets/icon-only.png']
           icon_path = next((c for c in candidates if os.path.exists(c)), None)
 
@@ -71,53 +83,35 @@ jobs:
           else:
               print('No icon image found in repo. Generating fluid blob icon automatically...')
               size = 1024
-              img = Image.new('RGBA', (size, size), (11, 13, 23, 255))
+              img = Image.new('RGBA', (size, size), (243, 225, 213, 255))
               center = size // 2
+              draw = ImageDraw.Draw(img)
+              draw.ellipse([center - 280, center - 280, center + 280, center + 280], fill=(255, 133, 132, 255))
 
-              g1 = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-              ImageDraw.Draw(g1).ellipse([center - 320, center - 320, center + 320, center + 320], fill=(56, 189, 248, 85))
-              img = Image.alpha_composite(img, g1.filter(ImageFilter.GaussianBlur(80)))
+          def make_rounded(source_img, size, radius_ratio=0.2237):
+              resized = source_img.resize((size, size), Image.Resampling.LANCZOS)
+              scale = 4
+              mask = Image.new('L', (size * scale, size * scale), 0)
+              draw = ImageDraw.Draw(mask)
+              radius = int(mask.size[0] * radius_ratio)
+              draw.rounded_rectangle([0, 0, mask.size[0], mask.size], radius=radius, fill=255)
+              mask = mask.resize((size, size), Image.Resampling.LANCZOS)
+              out = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+              out.paste(resized, (0, 0), mask=mask)
+              return out
 
-              g2 = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-              ImageDraw.Draw(g2).ellipse([center - 240, center - 200, center + 280, center + 320], fill=(168, 85, 247, 95))
-              img = Image.alpha_composite(img, g2.filter(ImageFilter.GaussianBlur(60)))
-
-              b_layer = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-              points = []
-              num_points = 180
-              r_base = 280
-              for i in range(num_points):
-                  angle = (2 * math.pi * i) / num_points
-                  r = r_base + 35 * math.sin(3 * angle) + 25 * math.cos(2 * angle) + 15 * math.sin(5 * angle)
-                  points.append((center + r * math.cos(angle), center + r * math.sin(angle)))
-              ImageDraw.Draw(b_layer).polygon(points, fill=(56, 189, 248, 240))
-              img = Image.alpha_composite(img, b_layer.filter(ImageFilter.GaussianBlur(6)))
-
-              c_layer = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-              core_points = []
-              for i in range(num_points):
-                  angle = (2 * math.pi * i) / num_points
-                  r = (r_base * 0.65) + 20 * math.sin(3 * angle) + 15 * math.cos(2 * angle)
-                  core_points.append((center + r * math.cos(angle) - 20, center + r * math.sin(angle) - 20))
-              ImageDraw.Draw(c_layer).polygon(core_points, fill=(192, 132, 252, 220))
-              img = Image.alpha_composite(img, c_layer.filter(ImageFilter.GaussianBlur(25)))
-
-              h_layer = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-              ImageDraw.Draw(h_layer).ellipse([center - 160, center - 180, center + 120, center + 100], fill=(255, 255, 255, 140))
-              img = Image.alpha_composite(img, h_layer.filter(ImageFilter.GaussianBlur(30)))
-
-          def create_round_icon(source_img, size):
+          def make_circle(source_img, size):
               resized = source_img.resize((size, size), Image.Resampling.LANCZOS)
               scale = 4
               mask = Image.new('L', (size * scale, size * scale), 0)
               draw = ImageDraw.Draw(mask)
               draw.ellipse([0, 0, size * scale, size * scale], fill=255)
               mask = mask.resize((size, size), Image.Resampling.LANCZOS)
-              round_img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-              round_img.paste(resized, (0, 0), mask=mask)
-              return round_img
+              out = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+              out.paste(resized, (0, 0), mask=mask)
+              return out
 
-          res_dir = 'android/app/src/main/res'
+          # 3. Inject standard, round, and adaptive foreground icons into all density folders
           sizes = {
               'mipmap-mdpi': (48, 108),
               'mipmap-hdpi': (72, 162),
@@ -127,16 +121,37 @@ jobs:
           }
           for folder, (std_size, fg_size) in sizes.items():
               target_dir = os.path.join(res_dir, folder)
-              if os.path.exists(target_dir):
-                  img.resize((std_size, std_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher.png'))
-                  create_round_icon(img, std_size).save(os.path.join(target_dir, 'ic_launcher_round.png'))
-                  img.resize((fg_size, fg_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher_foreground.png'))
+              os.makedirs(target_dir, exist_ok=True)
+              make_rounded(img, std_size).save(os.path.join(target_dir, 'ic_launcher.png'))
+              make_circle(img, std_size).save(os.path.join(target_dir, 'ic_launcher_round.png'))
+              img.resize((fg_size, fg_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher_foreground.png'))
 
+          # 4. Also inject rounded icons into www/ for web/PWA runtime
+          web_targets = {
+              'www/apple-touch-icon.png': 180,
+              'www/android-chrome-192x192.png': 192,
+              'www/android-chrome-512x512.png': 512,
+              'www/favicon-32x32.png': 32,
+              'www/favicon-16x16.png': 16
+          }
+          for p, s in web_targets.items():
+              make_rounded(img, s).save(p)
+
+          # 5. Set the adaptive background color to match the cream/peach background
           bg_file = os.path.join(res_dir, 'values', 'ic_launcher_background.xml')
           os.makedirs(os.path.dirname(bg_file), exist_ok=True)
           with open(bg_file, 'w') as f:
               f.write('<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <color name=\"ic_launcher_background\">#F3E1D5</color>\n</resources>\n')
-          print('All Android launcher icons successfully injected!')
+
+          # 6. Ensure adaptive icon XMLs explicitly point to @mipmap/ic_launcher_foreground
+          anydpi_dir = os.path.join(res_dir, 'mipmap-anydpi-v26')
+          os.makedirs(anydpi_dir, exist_ok=True)
+          adaptive_xml = '''<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<adaptive-icon xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <background android:drawable=\"@color/ic_launcher_background\"/>\n    <foreground android:drawable=\"@mipmap/ic_launcher_foreground\"/>\n</adaptive-icon>\n'''
+          for xml_name in ['ic_launcher.xml', 'ic_launcher_round.xml']:
+              with open(os.path.join(anydpi_dir, xml_name), 'w') as f:
+                  f.write(adaptive_xml)
+
+          print('All Android launcher, adaptive, and web assets successfully injected!')
           "
 
       - name: Build Android Debug APK
