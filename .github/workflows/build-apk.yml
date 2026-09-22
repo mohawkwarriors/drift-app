@@ -61,65 +61,61 @@ jobs:
       - name: Configure Fullscreen & Inject App Icons
         run: |
           python3 -m pip install Pillow
-          python3 -c "
+          python3 - << 'PYEOF'
           import os, glob
           from PIL import Image, ImageDraw
 
           res_dir = 'android/app/src/main/res'
 
-          # -------------------------------------------------------------
-          # 1. HIDE STATUS BAR (Immersive Fullscreen)
-          # -------------------------------------------------------------
+          # 1. HIDE STATUS BAR (Immersive Fullscreen in styles.xml)
           styles_file = os.path.join(res_dir, 'values', 'styles.xml')
           if os.path.exists(styles_file):
               with open(styles_file, 'r') as f:
-                  styles_content = f.read()
-              fullscreen_flags = '''        <item name=\"android:windowFullscreen\">true</item>
-          <item name=\"android:windowContentOverlay\">@null</item>
-          <item name=\"android:windowLayoutInDisplayCutoutMode\">shortEdges</item>
-  '''
-              if 'android:windowFullscreen' not in styles_content:
-                  styles_content = styles_content.replace(
-                      '<style name=\"AppTheme.NoActionBar\" parent=\"Theme.AppCompat.DayNight.NoActionBar\">\n',
-                      '<style name=\"AppTheme.NoActionBar\" parent=\"Theme.AppCompat.DayNight.NoActionBar\">\n' + fullscreen_flags
+                  s = f.read()
+              flags = (
+                  '        <item name="android:windowFullscreen">true</item>\n'
+                  '        <item name="android:windowContentOverlay">@null</item>\n'
+                  '        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>\n'
+              )
+              if 'android:windowFullscreen' not in s:
+                  s = s.replace(
+                      '<style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">\n',
+                      '<style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">\n' + flags
                   )
-                  styles_content = styles_content.replace(
-                      '<style name=\"AppTheme.NoActionBarLaunch\" parent=\"AppTheme.NoActionBar\">\n',
-                      '<style name=\"AppTheme.NoActionBarLaunch\" parent=\"AppTheme.NoActionBar\">\n' + fullscreen_flags
+                  s = s.replace(
+                      '<style name="AppTheme.NoActionBarLaunch" parent="AppTheme.NoActionBar">\n',
+                      '<style name="AppTheme.NoActionBarLaunch" parent="AppTheme.NoActionBar">\n' + flags
                   )
                   with open(styles_file, 'w') as f:
-                      f.write(styles_content)
+                      f.write(s)
                   print('Fullscreen theme successfully applied in styles.xml')
 
-          # Update MainActivity.java for modern WindowInsetsController status bar hiding
+          # 2. HIDE STATUS BAR (MainActivity.java)
           main_activity_file = 'android/app/src/main/java/com/mohawkwarriors/drift/MainActivity.java'
           if os.path.exists(main_activity_file):
               with open(main_activity_file, 'w') as f:
-                  f.write('''package com.mohawkwarriors.drift;
-
-          import android.os.Bundle;
-          import androidx.core.view.WindowCompat;
-          import androidx.core.view.WindowInsetsCompat;
-          import androidx.core.view.WindowInsetsControllerCompat;
-          import com.getcapacitor.BridgeActivity;
-
-          public class MainActivity extends BridgeActivity {
-              @Override
-              public void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
-                  if (controller != null) {
-                      controller.hide(WindowInsetsCompat.Type.statusBars());
-                      controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-                  }
-              }
-          }
-          ''')
+                  f.write(
+                      'package com.mohawkwarriors.drift;\n\n'
+                      'import android.os.Bundle;\n'
+                      'import androidx.core.view.WindowCompat;\n'
+                      'import androidx.core.view.WindowInsetsCompat;\n'
+                      'import androidx.core.view.WindowInsetsControllerCompat;\n'
+                      'import com.getcapacitor.BridgeActivity;\n\n'
+                      'public class MainActivity extends BridgeActivity {\n'
+                      '    @Override\n'
+                      '    public void onCreate(Bundle savedInstanceState) {\n'
+                      '        super.onCreate(savedInstanceState);\n'
+                      '        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());\n'
+                      '        if (controller != null) {\n'
+                      '            controller.hide(WindowInsetsCompat.Type.statusBars());\n'
+                      '            controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);\n'
+                      '        }\n'
+                      '    }\n'
+                      '}\n'
+                  )
               print('Immersive mode configured in MainActivity.java')
 
-          # -------------------------------------------------------------
-          # 2. REMOVE DEFAULT CAPACITOR VECTOR OVERRIDES
-          # -------------------------------------------------------------
+          # 3. REMOVE DEFAULT CAPACITOR VECTOR OVERRIDES
           for pattern in ['drawable*/ic_launcher_foreground.xml', 'drawable*/ic_launcher_background.xml']:
               for f in glob.glob(os.path.join(res_dir, pattern)):
                   try:
@@ -128,9 +124,7 @@ jobs:
                   except Exception as e:
                       print(f'Could not remove {f}: {e}')
 
-          # -------------------------------------------------------------
-          # 3. LOAD SOURCE ICON
-          # -------------------------------------------------------------
+          # 4. LOAD SOURCE ICON
           candidates = ['icon.png', 'Icon.png', 'blob.png', 'assets/icon.png', 'assets/icon-only.png']
           icon_path = next((c for c in candidates if os.path.exists(c)), None)
 
@@ -170,9 +164,7 @@ jobs:
               out.paste(resized, (0, 0), mask=mask)
               return out
 
-          # -------------------------------------------------------------
-          # 4. INJECT ICONS ACROSS ALL MIPMAP DENSITIES
-          # -------------------------------------------------------------
+          # 5. INJECT ICONS ACROSS ALL MIPMAP DENSITIES
           sizes = {
               'mipmap-mdpi': (48, 108),
               'mipmap-hdpi': (72, 162),
@@ -187,25 +179,27 @@ jobs:
               make_circle(img, std_size).save(os.path.join(target_dir, 'ic_launcher_round.png'))
               img.resize((fg_size, fg_size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, 'ic_launcher_foreground.png'))
 
-          # -------------------------------------------------------------
-          # 5. ADAPTIVE BACKGROUND & XML DEFINITIONS
-          # -------------------------------------------------------------
+          # 6. ADAPTIVE BACKGROUND & XML DEFINITIONS
           bg_file = os.path.join(res_dir, 'values', 'ic_launcher_background.xml')
           os.makedirs(os.path.dirname(bg_file), exist_ok=True)
           with open(bg_file, 'w') as f:
-              f.write('<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <color name=\"ic_launcher_background\">#F3E1D5</color>\n</resources>\n')
-
-          anydpi_dir = os.path.join(D5</color>\n</resources>\n')
+              f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#F3E1D5</color>\n</resources>\n')
 
           anydpi_dir = os.path.join(res_dir, 'mipmap-anydpi-v26')
           os.makedirs(anydpi_dir, exist_ok=True)
-          adaptive_xml = '''<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<adaptive-icon xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <background android:drawable=\"@color/ic_launcher_background\"/>\n    <foreground android:drawable=\"@mipmap/ic_launcher_foreground\"/>\n</adaptive-icon>\n'''
+          adaptive_xml = (
+              '<?xml version="1.0" encoding="utf-8"?>\n'
+              '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
+              '    <background android:drawable="@color/ic_launcher_background"/>\n'
+              '    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n'
+              '</adaptive-icon>\n'
+          )
           for xml_name in ['ic_launcher.xml', 'ic_launcher_round.xml']:
               with open(os.path.join(anydpi_dir, xml_name), 'w') as f:
                   f.write(adaptive_xml)
 
           print('All Android launcher, adaptive, and fullscreen configs injected!')
-          "
+          PYEOF
 
       - name: Build Android Debug APK
         run: |
