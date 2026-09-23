@@ -1576,18 +1576,58 @@
       return null;
     }
 
+    let iosHapticLabel = null;
+    let iosHapticInput = null;
+
+    function initIOSHaptics() {
+      if (document.getElementById('iosHapticLabel')) {
+        iosHapticLabel = document.getElementById('iosHapticLabel');
+        iosHapticInput = document.getElementById('iosHapticSwitch');
+        return;
+      }
+      try {
+        const id = 'iosHapticSwitch';
+        iosHapticLabel = document.createElement('label');
+        iosHapticLabel.id = 'iosHapticLabel';
+        iosHapticLabel.setAttribute('for', id);
+        iosHapticLabel.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;width:1px;height:1px;overflow:hidden;';
+
+        iosHapticInput = document.createElement('input');
+        iosHapticInput.type = 'checkbox';
+        iosHapticInput.setAttribute('switch', '');
+        iosHapticInput.id = id;
+        iosHapticInput.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;width:1px;height:1px;overflow:hidden;';
+
+        document.body.appendChild(iosHapticLabel);
+        document.body.appendChild(iosHapticInput);
+      } catch(e) {}
+    }
+
+    function triggerIOSHapticPulse() {
+      if (!iosHapticLabel) initIOSHaptics();
+      if (iosHapticLabel) {
+        try {
+          iosHapticLabel.click();
+        } catch(e) {}
+      }
+    }
+
+    function triggerIOSHapticSequence(pattern) {
+      triggerIOSHapticPulse();
+      if (pattern && pattern.length > 2) {
+        const pause = pattern[1] || 60;
+        setTimeout(() => {
+          triggerIOSHapticPulse();
+        }, pause);
+      }
+    }
+
     function executeVibration(pattern) {
       if (!pattern) return;
       if (typeof pattern === 'number') pattern = [pattern];
       if (!pattern.length || pattern[0] === 0) return;
 
-      if (navigator.vibrate) {
-        try {
-          navigator.vibrate(pattern);
-          return;
-        } catch(e) {}
-      }
-
+      // 1. Native Capacitor Haptics (iOS / Android native app wrapper)
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
         try {
           const capHaptics = window.Capacitor.Plugins.Haptics;
@@ -1603,8 +1643,21 @@
             const totalDur = pattern.reduce((acc, v) => acc + v, 0);
             capHaptics.vibrate({ duration: Math.min(totalDur, 200) });
           }
+          return;
         } catch(e) {}
       }
+
+      // 2. Standard Web Vibration API (Android Chrome, Firefox)
+      if (navigator.vibrate) {
+        try {
+          navigator.vibrate(pattern);
+          return;
+        } catch(e) {}
+      }
+
+      // 3. iOS Safari / WebKit switch haptic trigger (iOS 17.4+ / iOS 18+)
+      // Safari completely omits navigator.vibrate, but toggling an <input switch> triggers the iPhone Taptic Engine.
+      triggerIOSHapticSequence(pattern);
     }
 
     function previewHaptic(mode) {
