@@ -2,13 +2,20 @@
 <html lang="en">
 <head>
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="./icon.png?v=3" />
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=3" />
-  <link rel="manifest" href="./site.webmanifest?v=3" />
+  <!-- Primary high-res rounded icon (forces desktop browsers to display the squircle) -->
+<link rel="icon" type="image/png" href="./icon.png?v=3" />
+
+<!-- iOS Home Screen -->
+<link rel="apple-touch-icon" href="./apple-touch-icon.png?v=3" />
+
+<!-- Web Manifest -->
+<link rel="manifest" href="./site.webmanifest?v=3" />
+  <link rel="manifest" href="./manifest.json" />
   <meta name="theme-color" content="#ffffff" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Drift</title>
   <style>
@@ -45,19 +52,21 @@
       transition: background 2s cubic-bezier(0.4, 0, 0.2, 1); 
     }
     
-    /* Morning: First light of dawn */
+    /* Morning: First light of dawn breaking into soft sky */
     body.day-mode { 
       background: radial-gradient(circle at 50% 25%, #fff7ed 0%, #ffedd5 35%, #fed7aa 65%, #e0e7ff 100%); 
       color: #1e293b; 
     }
     
-    /* Night: Celestial velvet */
+    /* Night: Deep celestial velvet */
     body.night-mode { 
       background: radial-gradient(circle at 50% 32%, #0f1322 0%, #080a14 55%, #030408 100%); 
       color: #f1f5f9; 
     }
 
-    /* FROSTED GLASS CANVAS */
+    /* =========================================================
+       FROSTED GLASS CANVAS
+       ========================================================= */
     .glass-canvas {
       position: relative;
       width: 100%;
@@ -93,7 +102,9 @@
         inset 0 1px 1px rgba(255, 255, 255, 0.15);
     }
 
-    /* TOP BAR & CONTROLS */
+    /* =========================================================
+       TOP BAR & TRACKER
+       ========================================================= */
     .top-section {
       width: 100%;
       display: flex;
@@ -115,8 +126,9 @@
 
     .brand-group {
       display: flex;
-      align-items: center;
+      flex-direction: column;
       position: relative;
+      transition: opacity 0.4s ease;
     }
 
     h1 { 
@@ -124,19 +136,11 @@
       font-weight: 600; 
       letter-spacing: 0.5px; 
       opacity: 0.9; 
+      transition: opacity 0.8s ease; 
     }
+    h1.hidden { opacity: 0; }
 
     
-
-    /* Quick Haptic Toggle in Header */
-    
-    
-
-    .day-mode 
-    .night-mode 
-    
-    .day-mode 
-    .night-mode 
 
     /* Theme Switcher */
     .theme-switch-btn {
@@ -286,7 +290,9 @@
       100% { transform: scale(1); }
     }
 
-    /* DURATION CAPSULE */
+    /* =========================================================
+       DURATION CAPSULE
+       ========================================================= */
     .duration-container {
       position: absolute;
       top: 96px;
@@ -362,7 +368,9 @@
       box-shadow: 0 2px 12px rgba(168, 85, 247, 0.35);
     }
 
-    /* FLUID DRIFT STAGE */
+    /* =========================================================
+       FLUID DRIFT STAGE
+       ========================================================= */
     .blob-area { 
       flex: 1; 
       display: flex; 
@@ -463,13 +471,29 @@
     }
     .blob-mover.idle { animation: gentleLevitate 5s ease-in-out infinite; }
 
-    /* BOX 16-SECOND CADENCE (4-4-4-4) */
+    /* =========================================================
+       BOX 16-SECOND CADENCE DYNAMICS (4-4-4-4)
+       ========================================================= */
     @keyframes fluidMoveBox {
-      0% { transform: translate3d(0, 130px, 0); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      25% { transform: translate3d(0, -60px, 0); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      50% { transform: translate3d(0, -62px, 0); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      75% { transform: translate3d(0, 130px, 0); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      100% { transform: translate3d(0, 130px, 0); }
+      0% { 
+        transform: translate3d(0, 130px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      25% { 
+        transform: translate3d(0, -60px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      50% { 
+        transform: translate3d(0, -62px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      75% { 
+        transform: translate3d(0, 130px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      100% { 
+        transform: translate3d(0, 130px, 0); 
+      }
     }
 
     @keyframes harmonicBreathScaleBox {
@@ -488,12 +512,25 @@
       100% { opacity: 0.3; transform: scale(0.95); }
     }
 
-    /* 4-7-8 19-SECOND CADENCE */
+    /* =========================================================
+       4-7-8 19-SECOND CADENCE DYNAMICS (4-7-8)
+       ========================================================= */
     @keyframes fluidMove478 {
-      0% { transform: translate3d(0, 130px, 0); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      21.05% { transform: translate3d(0, -60px, 0); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      57.89% { transform: translate3d(0, -62px, 0); animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); }
-      100% { transform: translate3d(0, 130px, 0); }
+      0% { 
+        transform: translate3d(0, 130px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      21.05% { 
+        transform: translate3d(0, -60px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      57.89% { 
+        transform: translate3d(0, -62px, 0); 
+        animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95); 
+      }
+      100% { 
+        transform: translate3d(0, 130px, 0); 
+      }
     }
 
     @keyframes harmonicBreathScale478 {
@@ -527,7 +564,9 @@
     }
     .blob-mover.done { animation: celebrate 1.2s cubic-bezier(0.25, 1, 0.5, 1); }
 
-    /* PHASE & INK NUMBERS */
+    /* =========================================================
+       CALMING INK-DRIFT NUMBERS & PHASE
+       ========================================================= */
     .phase-wrap {
       position: absolute;
       transform: translate3d(0, -60px, 0);
@@ -616,7 +655,9 @@
       filter: blur(6px);
     }
 
-    /* BOTTOM BAR */
+    /* =========================================================
+       BOTTOM CONTROLS
+       ========================================================= */
     .bottom-bar {
       width: 100%;
       display: flex;
@@ -715,23 +756,23 @@
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     }
 
-    /* FROSTED SETTINGS SHEET */
+    /* =========================================================
+       FROSTED SETTINGS SHEET
+       ========================================================= */
     .settings-modal {
       position: absolute;
       inset: 0;
       z-index: 50;
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       display: flex;
       flex-direction: column;
-      padding: 24px 20px;
+      padding: 26px 22px;
       opacity: 0;
       transform: scale(0.97) translateY(10px);
       pointer-events: none;
-      transition: opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transition: opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
       overflow-y: auto;
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: touch;
     }
     .settings-modal.open {
       opacity: 1;
@@ -740,11 +781,11 @@
     }
 
     .day-mode .settings-modal {
-      background: rgba(255, 255, 255, 0.78);
+      background: rgba(255, 255, 255, 0.65);
       color: #0f172a;
     }
     .night-mode .settings-modal {
-      background: rgba(10, 14, 26, 0.84);
+      background: rgba(10, 14, 26, 0.72);
       color: #f1f5f9;
     }
 
@@ -752,8 +793,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
-      flex-shrink: 0;
+      margin-bottom: 22px;
     }
 
     .settings-title {
@@ -763,29 +803,28 @@
     }
 
     .settings-close-btn {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       border: none;
-      background: rgba(0, 0, 0, 0.06);
+      background: rgba(0, 0, 0, 0.05);
       color: inherit;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       transition: transform 0.2s ease, background 0.2s ease;
     }
     .settings-close-btn:active { transform: scale(0.9); }
-    .night-mode .settings-close-btn { background: rgba(255, 255, 255, 0.12); }
+    .night-mode .settings-close-btn { background: rgba(255, 255, 255, 0.1); }
 
     .settings-section {
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-shrink: 0;
+      gap: 12px;
+      margin-bottom: 22px;
     }
 
     .section-label {
@@ -793,7 +832,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1.5px;
-      opacity: 0.6;
+      opacity: 0.55;
     }
 
     /* Technique Segmented Controls */
@@ -810,7 +849,7 @@
       justify-content: center;
       gap: 4px;
       padding: 12px 10px;
-      border-radius: 18px;
+      border-radius: 20px;
       border: 1px solid transparent;
       cursor: pointer;
       backdrop-filter: blur(10px);
@@ -859,7 +898,8 @@
       letter-spacing: 0.4px;
     }
 
-    /* 4 Haptic Modes (Transitions, Metronome, Wave, Off) */
+    
+    /* 4 Haptic Feedback Modes */
     .haptics-group {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -904,7 +944,7 @@
     .night-mode .haptic-card.active {
       background: rgba(255, 255, 255, 0.14);
       border-color: rgba(192, 132, 252, 0.35);
-      box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3);
+      box-shadow: 0 4px 18px rgba(168, 85, 247, 0.3);
     }
 
     .haptic-title {
@@ -925,7 +965,7 @@
       text-align: center;
     }
 
-    /* Duration Presets */
+    /* Duration Presets: Brief, Reset, Deep */
     .duration-slots {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -938,10 +978,11 @@
       align-items: center;
       gap: 6px;
       padding: 12px 6px;
-      border-radius: 18px;
+      border-radius: 20px;
       border: 1px solid transparent;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
     .day-mode .duration-slot-card {
       background: rgba(255, 255, 255, 0.5);
@@ -986,16 +1027,17 @@
       border-color: rgba(255, 255, 255, 0.1);
     }
 
-    /* Reminders */
+    /* Dual Reminder Section */
     .reminder-card {
       display: flex;
       flex-direction: column;
       gap: 12px;
       padding: 16px;
-      border-radius: 22px;
+      border-radius: 24px;
       border: 1px solid transparent;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+      transition: background 0.3s ease;
     }
     .day-mode .reminder-card {
       background: rgba(255, 255, 255, 0.5);
@@ -1015,6 +1057,7 @@
     .reminder-divider {
       height: 1px;
       width: 100%;
+      transition: background 0.3s ease;
     }
     .day-mode .reminder-divider { background: rgba(0, 0, 0, 0.06); }
     .night-mode .reminder-divider { background: rgba(255, 255, 255, 0.08); }
@@ -1120,8 +1163,11 @@
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    /* Settings Active Dimming */
+    /* =========================================================
+       SETTINGS VISIBILITY
+       ========================================================= */
     .settings-active .top-bar .brand-group,
+    .settings-active .top-bar .theme-switch-btn,
     .settings-active .duration-container,
     .settings-active .bottom-bar .instruction,
     .settings-active .settings-trigger {
@@ -1134,11 +1180,12 @@
   
   <div class="glass-canvas" id="mainCanvas">
     
-    <!-- Top Section: Header & Cycle Indicators -->
+    <!-- Top Section: Branding, Theme & Cycle Tracker -->
     <div class="top-section">
       <header class="top-bar">
         <div class="brand-group">
           <h1 id="bloopTitle">Drift</h1>
+          
         </div>
 
         <!-- Theme Switcher -->
@@ -1189,7 +1236,7 @@
       <!-- Atmospheric Aura -->
       <div class="blob-halo" id="blobHalo"></div>
 
-      <!-- Unified Pure Fluid Blob -->
+      <!-- Unified Pure Fluid -->
       <div class="blob-mover idle" id="bloopMover">
         <div class="blob-scaler">
           <div class="fluid-core"></div>
@@ -1210,7 +1257,7 @@
       </svg>
     </button>
 
-    <!-- Translucent Frosted Preferences Modal -->
+    <!-- Translucent Frosted Settings Sheet -->
     <div class="settings-modal" id="settingsModal">
       <div class="settings-header">
         <div class="settings-title">Preferences</div>
@@ -1232,9 +1279,10 @@
         </div>
       </div>
 
+      
       <!-- 4 Haptic Feedback Modes Section -->
       <div class="settings-section">
-        <div class="section-label">Haptic Feedback Mode</div>
+        <div class="section-label">Haptic Feedback</div>
         <div class="haptics-group" id="hapticsGroup">
           <div class="haptic-card active" data-haptic="transitions">
             <span class="haptic-title">Transitions</span>
@@ -1346,7 +1394,7 @@
     const blobMover = document.getElementById('bloopMover');
     const blobHalo = document.getElementById('blobHalo');
     const endBtn = document.getElementById('endBtn');
-    const tapInstruction = document.getElementById('tapInstruction');
+            const tapInstruction = document.getElementById('tapInstruction');
     const phaseWrap = document.getElementById('phaseWrap');
     const phaseLabel = document.getElementById('phaseLabel');
     const numSlotA = document.getElementById('numSlotA');
@@ -1383,15 +1431,17 @@
     let activeSlot = 'A';
     let currentPhaseName = '';
 
+    // Slot Titles
     const SLOT_NAMES = ['Brief', 'Reset', 'Deep'];
+
+    // Duration State (Default 1, 2, 4 mins)
     let userDurations = [1, 2, 4];
-    let selectedDurationIdx = 1;
+    let selectedDurationIdx = 1; // "Reset" by default
 
-    let activeTechnique = 'box';
+    // Technique Configurations
+    let activeTechnique = 'box'; // 'box' or '478'
+    let activeHaptic = 'transitions'; // 'transitions', 'metronome', 'wave', 'off'
 
-    // 4 Haptic Modes: 'transitions', 'metronome', 'wave', 'off'
-    let activeHaptic = 'transitions';
-    const HAPTIC_MODES = ['transitions', 'metronome', 'wave', 'off'];
     const TECHNIQUES = {
       box: {
         cycleLength: 16,
@@ -1466,21 +1516,19 @@
       themeToggle.addEventListener('click', toggleTheme);
     }
 
-    /* HAPTICS ENGINE */
+    /* =========================================================
+       HAPTICS ENGINE
+       ========================================================= */
     function getTransitionPattern(phaseType) {
       switch (phaseType) {
         case 'inhale':
-          // Ascending double-tap: 40ms on, 50ms pause, 70ms on
-          return [40, 50, 70];
+          return [40, 50, 70]; // Ascending double-tap
         case 'hold_full':
-          // Single solid crisp anchor tap: 65ms
-          return [65];
+          return [65]; // Solid crisp anchor tap
         case 'exhale':
-          // Descending double-tap: 70ms on, 50ms pause, 35ms on
-          return [70, 50, 35];
+          return [70, 50, 35]; // Descending double-tap
         case 'hold_empty':
-          // Micro-tap for empty stillness: 25ms
-          return [25];
+          return [25]; // Micro-tap for empty stillness
         default:
           return [45];
       }
@@ -1489,7 +1537,7 @@
     function calculateStepHaptic(step) {
       if (activeHaptic === 'off') return null;
 
-      // Mode 1: Transitions Only
+      // Option 1: Transitions Only
       if (activeHaptic === 'transitions') {
         if (step.isPhaseStart) {
           return getTransitionPattern(step.phaseType);
@@ -1497,7 +1545,7 @@
         return null;
       }
 
-      // Mode 2: Continuous Rhythmic Metronome
+      // Option 2: Continuous Rhythmic Metronome
       if (activeHaptic === 'metronome') {
         if (step.isPhaseStart) {
           return getTransitionPattern(step.phaseType);
@@ -1508,7 +1556,7 @@
         return [10]; // 1-second cadence micro-tap
       }
 
-      // Mode 3: Dynamic Breathing Wave
+      // Option 3: Dynamic Breathing Wave
       if (activeHaptic === 'wave') {
         if (step.phaseType === 'inhale') {
           // Sec 1: 20ms -> Sec 2: 40ms -> Sec 3: 60ms -> Sec 4: 85ms
@@ -1569,7 +1617,20 @@
       }
     }
 
-    /* SETTINGS & STATE */
+    function setHaptic(mode, preview = true) {
+      activeHaptic = mode;
+      hapticCards.forEach(card => {
+        card.classList.toggle('active', card.dataset.haptic === mode);
+      });
+      saveSettings();
+      if (preview && mode !== 'off') {
+        previewHaptic(mode);
+      }
+    }
+
+    /* =========================================================
+       SETTINGS & PERSISTENCE
+       ========================================================= */
     function setTechnique(tech) {
       if (activeTechnique === tech) return;
       activeTechnique = tech;
@@ -1580,29 +1641,15 @@
       executeVibration([20]);
     }
 
-    function setHaptic(mode, preview = true) {
-      activeHaptic = mode;
-
-      // Update cards in preferences modal
-      hapticCards.forEach(card => {
-        card.classList.toggle('active', card.dataset.haptic === mode);
-      });
-      
-      saveSettings();
-      if (preview && mode !== 'off') {
-        previewHaptic(mode);
-      }
-    }
-
     function loadSettings() {
-      const saved = localStorage.getItem('driftSettings_v3');
+      const saved = localStorage.getItem('driftSettings_v2');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
           if (parsed.technique && TECHNIQUES[parsed.technique]) {
             activeTechnique = parsed.technique;
           }
-          if (parsed.haptic && HAPTIC_MODES.includes(parsed.haptic)) {
+          if (parsed.haptic && ['transitions', 'metronome', 'wave', 'off'].includes(parsed.haptic)) {
             activeHaptic = parsed.haptic;
           }
           if (Array.isArray(parsed.durations) && parsed.durations.length === 3) {
@@ -1628,7 +1675,9 @@
       techniqueBox.classList.toggle('active', activeTechnique === 'box');
       technique478.classList.toggle('active', activeTechnique === '478');
 
-      setHaptic(activeHaptic, false);
+      hapticCards.forEach(card => {
+        card.classList.toggle('active', card.dataset.haptic === activeHaptic);
+      });
 
       slotSelects.forEach((sel, i) => {
         sel.value = userDurations[i];
@@ -1645,7 +1694,7 @@
         eveningEnabled: eveningReminderToggle.checked,
         eveningTime: eveningTimeInput.value
       };
-      localStorage.setItem('driftSettings_v3', JSON.stringify(settings));
+      localStorage.setItem('driftSettings_v2', JSON.stringify(settings));
     }
 
     function openSettings() {
@@ -1662,6 +1711,7 @@
     function initSettingsEvents() {
       settingsBtn.addEventListener('click', openSettings);
       settingsCloseBtn.addEventListener('click', closeSettings);
+
       techniqueBox.addEventListener('click', () => setTechnique('box'));
       technique478.addEventListener('click', () => setTechnique('478'));
 
@@ -1698,6 +1748,7 @@
       eveningTimeInput.addEventListener('change', saveSettings);
     }
 
+    /* Dual Morning & Evening Background Checker */
     function initReminderService() {
       clearInterval(reminderCheckInterval);
       reminderCheckInterval = setInterval(() => {
@@ -1731,6 +1782,9 @@
       }, 30000);
     }
 
+    /* =========================================================
+       DURATION TABS & SWIPE GESTURES
+       ========================================================= */
     function renderDurationTabs() {
       durationCapsule.innerHTML = '';
       userDurations.forEach((mins, idx) => {
@@ -1797,6 +1851,9 @@
       }
     }
 
+    /* =========================================================
+       THEME & APP LIFECYCLE
+       ========================================================= */
     function setInitialTheme() {
       const hour = new Date().getHours();
       isDayMode = (hour >= 6 && hour < 19);
@@ -1817,6 +1874,8 @@
         themeToggle.setAttribute('aria-checked', 'true');
       }
     }
+
+    
 
     function updatePhaseLabel(name) {
       if (currentPhaseName === name) return;
