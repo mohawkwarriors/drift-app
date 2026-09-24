@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0d0f18" />
   <title>Drift</title>
@@ -1965,7 +1967,56 @@
       }
     }
 
+    /* =========================================================
+       SCREEN WAKE LOCK & IMMERSIVE FULLSCREEN (Keep screen awake)
+       ========================================================= */
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => {
+            wakeLock = null;
+          });
+        }
+      } catch (e) {}
+    }
+
+    async function releaseWakeLock() {
+      if (wakeLock !== null) {
+        try {
+          await wakeLock.release();
+          wakeLock = null;
+        } catch (e) {}
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && isBreathing && wakeLock === null) {
+        requestWakeLock();
+      }
+    });
+
+    function enterFullscreen() {
+      try {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    function exitFullscreen() {
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch (e) {}
+    }
+
     function startSession() {
+      requestWakeLock();
+      enterFullscreen();
       isBreathing = true;
       currentCycleSecond = 0;
       completedCycles = 0;
@@ -2009,6 +2060,8 @@
 
     function stopSession() {
       isBreathing = false;
+      releaseWakeLock();
+      exitFullscreen();
       clearInterval(cycleInterval);
       
       blobMover.classList.remove('breathing-box', 'breathing-478', 'done');
@@ -2036,6 +2089,8 @@
 
     function finishSession() {
       isBreathing = false;
+      releaseWakeLock();
+      exitFullscreen();
       clearInterval(cycleInterval);
       
       blobMover.classList.remove('breathing-box', 'breathing-478');
