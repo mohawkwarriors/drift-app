@@ -3,8 +3,6 @@ name: Build Android APK
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
@@ -60,16 +58,8 @@ jobs:
           if ! grep -q "android.permission.VIBRATE" "$manifest_file"; then
             sed -i '/<application/i \    <uses-permission android:name="android.permission.VIBRATE" />' "$manifest_file"
           fi
-          if ! grep -q "android.permission.WAKE_LOCK" "$manifest_file"; then
-            sed -i '/<application/i \    <uses-permission android:name="android.permission.WAKE_LOCK" />' "$manifest_file"
-          fi
           sed -i 's/android:icon="[^"]*"/android:icon="@mipmap\/ic_launcher"/g' "$manifest_file"
           sed -i 's/android:roundIcon="[^"]*"/android:roundIcon="@mipmap\/ic_launcher_round"/g' "$manifest_file"
-
-          styles_file="android/app/src/main/res/values/styles.xml"
-          if [ -f "$styles_file" ]; then
-            sed -i '/<item name="windowNoTitle">true<\/item>/a \        <item name="android:windowFullscreen">true<\/item>\n        <item name="android:windowContentOverlay">@null<\/item>' "$styles_file"
-          fi
 
       - name: Fix Kotlin Duplicate Classes Conflict
         run: |
@@ -102,13 +92,13 @@ jobs:
           }
           EOF_APP_GRADLE
 
-      - name: Generate and Inject Android Full-Bleed Icons
+      - name: Generate and Inject Android Squircle Icons
         run: |
           cat << 'EOF_PY' > generate_icons.py
           import os
           from PIL import Image, ImageDraw
 
-          candidates = ['icon_squircle.png', 'icon.png', 'android-chrome-512x512.png', 'apple-touch-icon.png', 'android-chrome-192x192.png', 'www/icon.png']
+          candidates = ['icon.png', 'icon_rounded.png', 'android-chrome-512x512.png', 'apple-touch-icon.png', 'android-chrome-192x192.png', 'www/icon.png']
           src_icon = next((f for f in candidates if os.path.exists(f)), None)
 
           if not src_icon:
@@ -136,43 +126,26 @@ jobs:
               squircle.putalpha(mask)
               return squircle
 
-          # Sample dominant background color from inside the icon edge
-          # Avoid transparent corners (0,0) by sampling slightly inward
-          sample_x = int(img.width * 0.5)
-          sample_y = int(img.height * 0.15)
-          bg_sample = img.getpixel((sample_x, sample_y))
-          if bg_sample[3] == 0:
-              # Fallback to dark celestial background if sample is transparent
-              hex_bg = '#0d0f18'
-          else:
-              hex_bg = f'#{bg_sample[0]:02x}{bg_sample[1]:02x}{bg_sample[2]:02x}'
-
-          print(f'Configuring adaptive background color: {hex_bg}')
-
           for folder, (size, fg_size) in densities.items():
               target_dir = os.path.join(res_dir, folder)
               os.makedirs(target_dir, exist_ok=True)
 
-              # 1. Full-bleed squircle for legacy launcher contexts
               squircle = make_squircle(img, size)
               squircle.save(os.path.join(target_dir, 'ic_launcher.png'), 'PNG')
               squircle.save(os.path.join(target_dir, 'ic_launcher_round.png'), 'PNG')
 
-              # 2. Full-bleed adaptive foreground centered within the 72% safe zone
               fg = Image.new('RGBA', (fg_size, fg_size), (0, 0, 0, 0))
-              inner_side = int(fg_size * 0.72)
-              inner_img = img.resize((inner_side, inner_side), Image.Resampling.LANCZOS)
+              inner_side = int(fg_size * 0.54)
+              inner_squircle = make_squircle(img, inner_side)
               offset = (fg_size - inner_side) // 2
-              fg.paste(inner_img, (offset, offset), inner_img)
+              fg.paste(inner_squircle, (offset, offset), inner_squircle)
               fg.save(os.path.join(target_dir, 'ic_launcher_foreground.png'), 'PNG')
 
-          # 3. Opaque background color matching the icon (eliminates the black matting ring)
           values_dir = os.path.join(res_dir, 'values')
           os.makedirs(values_dir, exist_ok=True)
           with open(os.path.join(values_dir, 'ic_launcher_background.xml'), 'w') as f:
-              f.write(f'<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">{hex_bg}</color>\n</resources>\n')
+              f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#00000000</color>\n</resources>\n')
 
-          # 4. Adaptive icon XML configuration for API 26+
           anydpi_dir = os.path.join(res_dir, 'mipmap-anydpi-v26')
           os.makedirs(anydpi_dir, exist_ok=True)
           adaptive_xml = (
@@ -187,7 +160,7 @@ jobs:
           with open(os.path.join(anydpi_dir, 'ic_launcher_round.xml'), 'w') as f:
               f.write(adaptive_xml)
 
-          print('Successfully generated full-bleed adaptive icons without matting.')
+          print('Successfully generated floating squircle launcher and adaptive icons.')
           EOF_PY
           python3 generate_icons.py
 
@@ -210,7 +183,8 @@ jobs:
           apk_file=$(find android/app/build/outputs/apk/debug/ -name "*.apk" | head -n 1)
           if [ -f "$apk_file" ]; then
             cp "$apk_file" drift-app.apk
-            gh release upload latest drift-app.apk --clobber || gh release create latest drift-app.apk --title "Latest APK Build"
+            gh release delete latest --yes 2>/dev/null || true
+            gh release create latest drift-app.apk --title "Latest APK Build" --notes "Automated APK build with squircle adaptive icon"
             echo "Successfully published drift-app.apk to latest release!"
           else
             echo "Error: APK file not found!"
