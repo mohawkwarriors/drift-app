@@ -1529,26 +1529,33 @@
     function calculateStepHaptic(step) {
       if (activeHaptic === 'off') return null;
 
-      // 1. Transitions Only (Inflections)
+      // 1. Transitions Only (Inflections at boundaries)
       if (activeHaptic === 'transitions') {
         if (step.isPhaseStart) {
-          return getTransitionPattern(step.phaseType);
+          return { pattern: getTransitionPattern(step.phaseType), ratio: 1.0 };
         }
         return null;
       }
 
-      // 2. Dynamic Breathing Wave (Somatic: 25ms -> 65ms -> 25ms)
+      // 2. Dynamic Breathing Wave (Gently swells 15ms -> 65ms on inhale, decrescendos 65ms -> 15ms on exhale)
       if (activeHaptic === 'wave') {
+        const MIN_WAVE = 15;
+        const MAX_WAVE = 65; // User-selected ceiling for maximum inhale intensity
+
         if (step.phaseType === 'inhale') {
+          // Gently increase from MIN_WAVE up to MAX_WAVE
           const progress = (step.stepInPhase - 1) / Math.max(step.phaseLength - 1, 1);
-          return [Math.round(25 + progress * (65 - 25))];
+          const duration = Math.round(MIN_WAVE + progress * (MAX_WAVE - MIN_WAVE));
+          return { pattern: [duration], ratio: progress };
         }
         if (step.phaseType === 'hold_full' || step.phaseType === 'hold_empty') {
           return null; // Restful stillness during holds
         }
         if (step.phaseType === 'exhale') {
+          // Gently decrease from MAX_WAVE down to MIN_WAVE
           const progress = (step.stepInPhase - 1) / Math.max(step.phaseLength - 1, 1);
-          return [Math.round(65 - progress * (65 - 25))];
+          const duration = Math.round(MAX_WAVE - progress * (MAX_WAVE - MIN_WAVE));
+          return { pattern: [duration], ratio: 1.0 - progress };
         }
       }
 
@@ -1572,7 +1579,7 @@
       }
     }
 
-    function playTactileSubBass(freq = 56, duration = 0.08) {
+    function playTactileSubBass(freq = 56, duration = 0.08, volume = 0.35) {
       if (!audioCtx) return;
       try {
         if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -1580,7 +1587,7 @@
         const gain = audioCtx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+        gain.gain.setValueAtTime(Math.min(volume, 0.45), audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -1638,9 +1645,21 @@
       }
     }
 
-    function executeVibration(pattern) {
-      if (!pattern) return;
-      if (typeof pattern === 'number') pattern = [pattern];
+    function executeVibration(hapticInput) {
+      if (!hapticInput) return;
+      
+      let pattern;
+      let ratio = 0.5;
+
+      if (Array.isArray(hapticInput) || typeof hapticInput === 'number') {
+        pattern = typeof hapticInput === 'number' ? [hapticInput] : hapticInput;
+      } else if (typeof hapticInput === 'object' && hapticInput.pattern) {
+        pattern = Array.isArray(hapticInput.pattern) ? hapticInput.pattern : [hapticInput.pattern];
+        ratio = hapticInput.ratio !== undefined ? hapticInput.ratio : 0.5;
+      } else {
+        return;
+      }
+
       if (!pattern.length || pattern[0] === 0) return;
 
       // 1. Native Capacitor Haptics (iOS / Android native app wrapper)
@@ -1648,9 +1667,10 @@
         try {
           const capHaptics = window.Capacitor.Plugins.Haptics;
           if (pattern.length === 1) {
-            if (pattern[0] <= 15) {
+            const dur = pattern[0];
+            if (dur <= 22) {
               capHaptics.impact({ style: 'LIGHT' });
-            } else if (pattern[0] <= 45) {
+            } else if (dur <= 48) {
               capHaptics.impact({ style: 'MEDIUM' });
             } else {
               capHaptics.impact({ style: 'HEAVY' });
@@ -1671,10 +1691,11 @@
         } catch(e) {}
       }
 
-      // 3. iOS Safari / WebKit switch haptic trigger (iOS 17.4+ / iOS 18+)
-      // Safari completely omits navigator.vibrate, but toggling an <input switch> triggers the iPhone Taptic Engine.
+      // 3. iOS Safari / WebKit switch haptic trigger & Web Audio tactile resonance
       triggerIOSHapticSequence(pattern);
-      playTactileSubBass(56, 0.08);
+      const scaledFreq = Math.round(48 + 14 * ratio);
+      const scaledVol = 0.15 + 0.30 * ratio;
+      playTactileSubBass(scaledFreq, 0.08, scaledVol);
     }
 
     function previewHaptic(mode) {
@@ -1683,7 +1704,8 @@
       } else if (mode === 'metronome') {
         executeVibration([20, 50, 6, 60, 16]); // Softened sample cadence
       } else if (mode === 'wave') {
-        executeVibration([10, 50, 24, 50, 38]); // Softened sample wave progression
+        // Swell preview: gentle start -> mid -> peak at max (65ms)
+        executeVibration([15, 60, 38, 60, 65]);
       }
     }
 
