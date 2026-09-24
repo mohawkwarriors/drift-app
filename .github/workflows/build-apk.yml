@@ -92,76 +92,8 @@ jobs:
           }
           EOF_APP_GRADLE
 
-      - name: Generate and Inject Android Squircle Icons
+      - name: Run Icon Generator
         run: |
-          cat << 'EOF_PY' > generate_icons.py
-          import os
-          from PIL import Image, ImageDraw
-
-          candidates = ['icon.png', 'icon_rounded.png', 'android-chrome-512x512.png', 'apple-touch-icon.png', 'android-chrome-192x192.png', 'www/icon.png']
-          src_icon = next((f for f in candidates if os.path.exists(f)), None)
-
-          if not src_icon:
-              print('Warning: No icon file found among:', candidates)
-              exit(1)
-
-          print(f'Using source icon: {src_icon}')
-          img = Image.open(src_icon).convert('RGBA')
-
-          res_dir = 'android/app/src/main/res'
-          densities = {
-              'mipmap-mdpi': (48, 108),
-              'mipmap-hdpi': (72, 162),
-              'mipmap-xhdpi': (96, 216),
-              'mipmap-xxhdpi': (144, 324),
-              'mipmap-xxxhdpi': (192, 432),
-          }
-
-          def make_squircle(image, size, radius_ratio=0.225):
-              resized = image.resize((size, size), Image.Resampling.LANCZOS)
-              mask = Image.new('L', (size, size), 0)
-              draw = ImageDraw.Draw(mask)
-              draw.rounded_rectangle([(0, 0), (size, size)], radius=int(size * radius_ratio), fill=255)
-              squircle = resized.copy()
-              squircle.putalpha(mask)
-              return squircle
-
-          for folder, (size, fg_size) in densities.items():
-              target_dir = os.path.join(res_dir, folder)
-              os.makedirs(target_dir, exist_ok=True)
-
-              squircle = make_squircle(img, size)
-              squircle.save(os.path.join(target_dir, 'ic_launcher.png'), 'PNG')
-              squircle.save(os.path.join(target_dir, 'ic_launcher_round.png'), 'PNG')
-
-              fg = Image.new('RGBA', (fg_size, fg_size), (0, 0, 0, 0))
-              inner_side = int(fg_size * 0.54)
-              inner_squircle = make_squircle(img, inner_side)
-              offset = (fg_size - inner_side) // 2
-              fg.paste(inner_squircle, (offset, offset), inner_squircle)
-              fg.save(os.path.join(target_dir, 'ic_launcher_foreground.png'), 'PNG')
-
-          values_dir = os.path.join(res_dir, 'values')
-          os.makedirs(values_dir, exist_ok=True)
-          with open(os.path.join(values_dir, 'ic_launcher_background.xml'), 'w') as f:
-              f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#00000000</color>\n</resources>\n')
-
-          anydpi_dir = os.path.join(res_dir, 'mipmap-anydpi-v26')
-          os.makedirs(anydpi_dir, exist_ok=True)
-          adaptive_xml = (
-              '<?xml version="1.0" encoding="utf-8"?>\n'
-              '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
-              '    <background android:drawable="@color/ic_launcher_background"/>\n'
-              '    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n'
-              '</adaptive-icon>\n'
-          )
-          with open(os.path.join(anydpi_dir, 'ic_launcher.xml'), 'w') as f:
-              f.write(adaptive_xml)
-          with open(os.path.join(anydpi_dir, 'ic_launcher_round.xml'), 'w') as f:
-              f.write(adaptive_xml)
-
-          print('Successfully generated floating squircle launcher and adaptive icons.')
-          EOF_PY
           python3 generate_icons.py
 
       - name: Build Android App (APK)
@@ -184,7 +116,7 @@ jobs:
           if [ -f "$apk_file" ]; then
             cp "$apk_file" drift-app.apk
             gh release delete latest --yes 2>/dev/null || true
-            gh release create latest drift-app.apk --title "Latest APK Build" --notes "Automated APK build with squircle adaptive icon"
+            gh release create latest drift-app.apk --title "Latest APK Build" --notes "Automated APK build with solid #0d0f18 adaptive icon background"
             echo "Successfully published drift-app.apk to latest release!"
           else
             echo "Error: APK file not found!"
