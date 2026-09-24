@@ -94,13 +94,13 @@ jobs:
           }
           EOF_APP_GRADLE
 
-      - name: Generate and Inject Android Launcher Icons
+      - name: Generate and Inject Android Squircle Icons
         run: |
           cat << 'EOF_PY' > generate_icons.py
           import os
           from PIL import Image, ImageDraw
 
-          candidates = ['icon.png', 'icon_rounded.png', 'android-chrome-512x512.png', 'apple-touch-icon.png', 'android-chrome-192x192.png', 'www/icon.png']
+          candidates = ['icon_squircle.png', 'icon.png', 'icon_rounded.png', 'android-chrome-512x512.png', 'apple-touch-icon.png', 'android-chrome-192x192.png', 'www/icon.png']
           src_icon = next((f for f in candidates if os.path.exists(f)), None)
 
           if not src_icon:
@@ -119,37 +119,39 @@ jobs:
               'mipmap-xxxhdpi': (192, 432),
           }
 
-          def round_corners(image, radius):
-              mask = Image.new('L', image.size, 0)
+          def make_squircle(image, size, radius_ratio=0.225):
+              resized = image.resize((size, size), Image.Resampling.LANCZOS)
+              mask = Image.new('L', (size, size), 0)
               draw = ImageDraw.Draw(mask)
-              draw.rounded_rectangle([(0, 0), image.size], radius=radius, fill=255)
-              out = image.copy()
-              out.putalpha(mask)
-              return out
+              draw.rounded_rectangle([(0, 0), (size, size)], radius=int(size * radius_ratio), fill=255)
+              squircle = resized.copy()
+              squircle.putalpha(mask)
+              return squircle
 
           for folder, (size, fg_size) in densities.items():
               target_dir = os.path.join(res_dir, folder)
               os.makedirs(target_dir, exist_ok=True)
 
-              # 1. Standard and Round legacy icons
-              resized = img.resize((size, size), Image.Resampling.LANCZOS)
-              squircle = round_corners(resized, int(size * 0.22))
+              # 1. Full-bleed squircle for legacy launcher icons (both standard & round)
+              squircle = make_squircle(img, size)
               squircle.save(os.path.join(target_dir, 'ic_launcher.png'), 'PNG')
               squircle.save(os.path.join(target_dir, 'ic_launcher_round.png'), 'PNG')
 
-              # 2. Adaptive launcher foreground icon (centered within 72% safe zone)
+              # 2. Adaptive launcher foreground: squircle sized at 54% on transparent background
+              # This ensures the squircle sits entirely inside OEM circle masks (like Pixel Launcher)
+              # without being clipped into a circle!
               fg = Image.new('RGBA', (fg_size, fg_size), (0, 0, 0, 0))
-              inner_dim = int(fg_size * 0.72)
-              inner_img = img.resize((inner_dim, inner_dim), Image.Resampling.LANCZOS)
-              offset = (fg_size - inner_dim) // 2
-              fg.paste(inner_img, (offset, offset), inner_img)
+              inner_side = int(fg_size * 0.54)
+              inner_squircle = make_squircle(img, inner_side)
+              offset = (fg_size - inner_side) // 2
+              fg.paste(inner_squircle, (offset, offset), inner_squircle)
               fg.save(os.path.join(target_dir, 'ic_launcher_foreground.png'), 'PNG')
 
-          # 3. Adaptive icon background color
+          # 3. Transparent adaptive icon background so only the floating squircle is visible
           values_dir = os.path.join(res_dir, 'values')
           os.makedirs(values_dir, exist_ok=True)
           with open(os.path.join(values_dir, 'ic_launcher_background.xml'), 'w') as f:
-              f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#0d0f18</color>\n</resources>\n')
+              f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#00000000</color>\n</resources>\n')
 
           # 4. Adaptive icon XML configuration for API 26+
           anydpi_dir = os.path.join(res_dir, 'mipmap-anydpi-v26')
@@ -166,7 +168,7 @@ jobs:
           with open(os.path.join(anydpi_dir, 'ic_launcher_round.xml'), 'w') as f:
               f.write(adaptive_xml)
 
-          print('Successfully generated and configured all Android launcher and adaptive icons.')
+          print('Successfully generated floating squircle launcher and adaptive icons.')
           EOF_PY
           python3 generate_icons.py
 
