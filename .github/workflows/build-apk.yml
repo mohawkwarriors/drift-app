@@ -193,3 +193,5 @@ jobs:
             echo "Successfully published drift-app.apk to latest release!"
           else
             echo "Error: APK file not found!"
+            exit 1
+          fi
