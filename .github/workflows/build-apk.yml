@@ -23,6 +23,15 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python Pillow
+        run: |
+          python3 -m pip install Pillow
+
       - name: Install Dependencies & Capacitor
         run: |
           npm init -y || true
