@@ -52,14 +52,15 @@ jobs:
         run: |
           npx cap sync android
 
-      - name: Ensure Android Manifest Permissions and Launcher Icons
+      - name: Configure Android Manifest (Standard Icon Only, No RoundIcon)
         run: |
           manifest_file="android/app/src/main/AndroidManifest.xml"
           if ! grep -q "android.permission.VIBRATE" "$manifest_file"; then
             sed -i '/<application/i \    <uses-permission android:name="android.permission.VIBRATE" />' "$manifest_file"
           fi
+          # Ensure standard icon is set and remove roundIcon attribute completely
           sed -i 's/android:icon="[^"]*"/android:icon="@mipmap\/ic_launcher"/g' "$manifest_file"
-          sed -i 's/android:roundIcon="[^"]*"/android:roundIcon="@mipmap\/ic_launcher_round"/g' "$manifest_file"
+          sed -i 's/android:roundIcon="[^"]*"//g' "$manifest_file"
 
       - name: Fix Kotlin Duplicate Classes Conflict
         run: |
@@ -95,6 +96,7 @@ jobs:
       - name: Run Icon Generator
         run: |
           python3 generate_icons.py
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26 || true
 
       - name: Build Android App (APK)
         run: |
@@ -116,7 +118,7 @@ jobs:
           if [ -f "$apk_file" ]; then
             cp "$apk_file" drift-app.apk
             gh release delete latest --yes 2>/dev/null || true
-            gh release create latest drift-app.apk --title "Latest APK Build" --notes "Automated APK build with solid #0d0f18 adaptive icon background"
+            gh release create latest drift-app.apk --title "Latest APK Build" --notes "Direct squircle icon build"
             echo "Successfully published drift-app.apk to latest release!"
           else
             echo "Error: APK file not found!"
