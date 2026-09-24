@@ -54,14 +54,24 @@ jobs:
         run: |
           npx cap sync android
 
-      - name: Ensure Android Manifest Permissions and Launcher Icons
+      - name: Ensure Android Manifest Permissions and Theme Fullscreen
         run: |
           manifest_file="android/app/src/main/AndroidManifest.xml"
+          # Ensure VIBRATE and WAKE_LOCK permissions
           if ! grep -q "android.permission.VIBRATE" "$manifest_file"; then
             sed -i '/<application/i \    <uses-permission android:name="android.permission.VIBRATE" />' "$manifest_file"
           fi
+          if ! grep -q "android.permission.WAKE_LOCK" "$manifest_file"; then
+            sed -i '/<application/i \    <uses-permission android:name="android.permission.WAKE_LOCK" />' "$manifest_file"
+          fi
           sed -i 's/android:icon="[^"]*"/android:icon="@mipmap\/ic_launcher"/g' "$manifest_file"
           sed -i 's/android:roundIcon="[^"]*"/android:roundIcon="@mipmap\/ic_launcher_round"/g' "$manifest_file"
+
+          # Configure Android styles to hide status bar across APK
+          styles_file="android/app/src/main/res/values/styles.xml"
+          if [ -f "$styles_file" ]; then
+            sed -i '/<item name="windowNoTitle">true<\/item>/a \        <item name="android:windowFullscreen">true<\/item>\n        <item name="android:windowContentOverlay">@null<\/item>' "$styles_file"
+          fi
 
       - name: Fix Kotlin Duplicate Classes Conflict
         run: |
@@ -132,14 +142,12 @@ jobs:
               target_dir = os.path.join(res_dir, folder)
               os.makedirs(target_dir, exist_ok=True)
 
-              # 1. Full-bleed squircle for legacy launcher icons (both standard & round)
+              # 1. Full-bleed squircle for legacy launcher icons
               squircle = make_squircle(img, size)
               squircle.save(os.path.join(target_dir, 'ic_launcher.png'), 'PNG')
               squircle.save(os.path.join(target_dir, 'ic_launcher_round.png'), 'PNG')
 
               # 2. Adaptive launcher foreground: squircle sized at 54% on transparent background
-              # This ensures the squircle sits entirely inside OEM circle masks (like Pixel Launcher)
-              # without being clipped into a circle!
               fg = Image.new('RGBA', (fg_size, fg_size), (0, 0, 0, 0))
               inner_side = int(fg_size * 0.54)
               inner_squircle = make_squircle(img, inner_side)
@@ -147,7 +155,7 @@ jobs:
               fg.paste(inner_squircle, (offset, offset), inner_squircle)
               fg.save(os.path.join(target_dir, 'ic_launcher_foreground.png'), 'PNG')
 
-          # 3. Transparent adaptive icon background so only the floating squircle is visible
+          # 3. Transparent adaptive icon background
           values_dir = os.path.join(res_dir, 'values')
           os.makedirs(values_dir, exist_ok=True)
           with open(os.path.join(values_dir, 'ic_launcher_background.xml'), 'w') as f:
