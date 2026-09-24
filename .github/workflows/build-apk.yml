@@ -17,20 +17,21 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21 (Required for Capacitor 7)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.11'
 
       - name: Install Python Pillow
         run: |
-          python3 -m pip install Pillow
+          python -m pip install --upgrade pip
+          python -m pip install Pillow
 
       - name: Install Dependencies & Capacitor
         run: |
@@ -52,8 +53,9 @@ jobs:
           fi
 
       - name: Inject Rounded Launcher Icons
+        continue-on-error: true
         run: |
-          python3 -c "
+          python -c "
           import os
           from PIL import Image, ImageDraw
 
@@ -86,11 +88,11 @@ jobs:
           for folder, size in mipmap_sizes.items():
               target_dir = os.path.join(base_dir, folder)
               os.makedirs(target_dir, exist_ok=True)
-              
+
               resized = img.resize((size, size), Image.Resampling.LANCZOS)
               radius = int(size * 0.225)
               squircle = round_corners(resized, radius)
-              
+
               squircle.save(os.path.join(target_dir, 'ic_launcher.png'), 'PNG')
               squircle.save(os.path.join(target_dir, 'ic_launcher_round.png'), 'PNG')
           print('Successfully generated launcher icons!')
