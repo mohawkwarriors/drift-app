@@ -2,14 +2,20 @@ import os
 import shutil
 from PIL import Image, ImageDraw
 
-def make_squircle(image, size, radius_ratio=0.225):
-    resized = image.resize((size, size), Image.Resampling.LANCZOS)
-    mask = Image.new("L", (size, size), 0)
-    draw = ImageDraw.Draw(mask)
-    draw.rounded_rectangle([(0, 0), (size, size)], radius=int(size * radius_ratio), fill=255)
-    squircle = resized.copy()
-    squircle.putalpha(mask)
-    return squircle
+def make_hd_squircle(image, size, radius_ratio=0.225):
+    """Generates high-definition squircle using 8x supersampling and Lanczos anti-aliasing."""
+    scale = 8
+    hi_size = size * scale
+    hi_img = image.resize((hi_size, hi_size), Image.Resampling.LANCZOS)
+
+    hi_mask = Image.new("L", (hi_size, hi_size), 0)
+    draw = ImageDraw.Draw(hi_mask)
+    radius = int(hi_size * radius_ratio)
+    # Coordinate boundary (0 to hi_size - 1) ensures perfect symmetric bounds
+    draw.rounded_rectangle([(0, 0), (hi_size - 1, hi_size - 1)], radius=radius, fill=255)
+
+    hi_img.putalpha(hi_mask)
+    return hi_img.resize((size, size), Image.Resampling.LANCZOS)
 
 def build_all_icons():
     candidates = [
@@ -29,10 +35,10 @@ def build_all_icons():
     print(f"Using source icon: {src_icon}")
     base_img = Image.open(src_icon).convert("RGBA")
 
-    # 1. Web PWA Icons (Pure Squircles with transparent outside corners)
-    make_squircle(base_img, 192).save("android-chrome-192x192.png", "PNG")
-    make_squircle(base_img, 512).save("android-chrome-512x512.png", "PNG")
-    base_img.resize((180, 180), Image.Resampling.LANCZOS).save("apple-touch-icon.png", "PNG")
+    # 1. Web PWA Icons (High-definition anti-aliased squircles)
+    make_hd_squircle(base_img, 192).save("android-chrome-192x192.png", "PNG", optimize=True)
+    make_hd_squircle(base_img, 512).save("android-chrome-512x512.png", "PNG", optimize=True)
+    make_hd_squircle(base_img, 180).save("apple-touch-icon.png", "PNG", optimize=True)
 
     # 2. Android Native Mipmap Icons
     res_dir = "android/app/src/main/res"
@@ -54,11 +60,11 @@ def build_all_icons():
         for folder, size in densities.items():
             target_dir = os.path.join(res_dir, folder)
             os.makedirs(target_dir, exist_ok=True)
-            sq = make_squircle(base_img, size)
-            sq.save(os.path.join(target_dir, "ic_launcher.png"), "PNG")
-            sq.save(os.path.join(target_dir, "ic_launcher_round.png"), "PNG")
+            sq = make_hd_squircle(base_img, size)
+            sq.save(os.path.join(target_dir, "ic_launcher.png"), "PNG", optimize=True)
+            sq.save(os.path.join(target_dir, "ic_launcher_round.png"), "PNG", optimize=True)
 
-        print("Generated native squircle PNG icons across all mipmap densities.")
+        print("Generated HD native squircle PNG icons across all mipmap densities.")
 
 if __name__ == "__main__":
     build_all_icons()
