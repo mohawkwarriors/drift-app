@@ -1510,6 +1510,7 @@
 
       // Unlock AudioContext and prime iOS switch haptics on very first touch/gesture
       const primeMediaAndHaptics = () => {
+        unlockIOSAudioSession();
         initAudioContext();
         triggerIOSHapticPulse();
         window.removeEventListener('pointerdown', primeMediaAndHaptics);
@@ -1542,6 +1543,21 @@
     // Synthesizes a physical 50Hz-62Hz sub-bass chassis resonance impulse + subtle zen acoustic micro-tick.
     // This allows continuous, rhythmic pacing during breathing sessions (setInterval) on iOS Safari & PWAs
     // where WebKit strictly blocks synthetic switch events and does not support navigator.vibrate.
+    // Forces iOS Safari audio session category from Ambient to Playback,
+    // allowing Web Audio tactile pulses to resonate even when the iPhone hardware Silent switch is ON.
+    function unlockIOSAudioSession() {
+      if (!isIOS) return;
+      try {
+        const audio = new Audio();
+        audio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+        audio.playsInline = true;
+        audio.crossOrigin = 'anonymous';
+        audio.play().then(() => {
+          audio.pause();
+        }).catch(() => {});
+      } catch(e) {}
+    }
+
     function initAudioContext() {
       if (!audioCtx) {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -2065,6 +2081,7 @@
     }
 
     function startSession() {
+      unlockIOSAudioSession();
       initAudioContext();
       isBreathing = true;
       currentCycleSecond = 0;
