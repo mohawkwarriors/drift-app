@@ -2,194 +2,90 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build:
-    name: Build Native Android APK
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up Java JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: 21
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      - name: Prepare Web Assets
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install Dependencies & Capacitor
         run: |
+          npm init -y || true
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/haptics
           mkdir -p www
-          # Prioritize active index.html with your latest features and improvements
-          if [ -f "index.html" ]; then
-            cp index.html www/index.html
-          elif [ -f "drift_20260920.html" ]; then
-            cp drift_20260920.html www/index.html
-          else
-            first_html=$(ls *.html 2>/dev/null | head -n 1)
-            [ -n "$first_html" ] && cp "$first_html" www/index.html
-          fi
-          cp *.js *.css *.json *.png *.svg www/ 2>/dev/null || true
+          cp -r index.html site.webmanifest manifest.json icon.png apple-touch-icon.png favicon* android-chrome* www/ || true
 
-      - name: Setup Capacitor & Generate Android Project
+      - name: Initialize & Add Android Platform
         run: |
-          if [ ! -f "package.json" ]; then
-            npm init -y
-          fi
-          npm install --save @capacitor/core @capacitor/cli @capacitor/android
-
-          if [ ! -f "capacitor.config.json" ]; then
-            npx cap init "Drift" "com.mohawkwarriors.drift" --web-dir www
-          fi
-
+          npx cap init Drift com.mohawkwarriors.drift --web-dir www || true
           npx cap add android || true
           npx cap sync android
 
-          # Align Kotlin libraries to eliminate duplicate class conflicts
-          printf "\nconfigurations.all {\n  resolutionStrategy {\n    force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'\n    force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'\n    force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'\n  }\n}\n" >> android/app/build.gradle
-
-          # Bump versionCode to force Android to invalidate cached app data
-          sed -i "s/versionCode 1/versionCode $(date +%s)/g" android/app/build.gradle
-
-      - name: Configure Fullscreen & Inject Squircle App Icons
+      - name: Ensure Vibrate Permission in Android Manifest
         run: |
-          python3 -m pip install Pillow
-          python3 - << 'PYEOF'
-          import os, glob, re, shutil
+          if ! grep -q "android.permission.VIBRATE" android/app/src/main/AndroidManifest.xml; then
+            sed -i '/<application/i \    <uses-permission android:name="android.permission.VIBRATE" />' android/app/src/main/AndroidManifest.xml
+          fi
+
+      - name: Inject Rounded Launcher Icons
+        run: |
+          python3 -c "
+          import os
           from PIL import Image, ImageDraw
 
-          res_dir = 'android/app/src/main/res'
+          # Paths
+          base_dir = 'android/app/src/main/res'
+          icon_src = 'icon.png'
 
-          # 1. HIDE STATUS BAR (Immersive Fullscreen in styles.xml)
-          styles_file = os.path.join(res_dir, 'values', 'styles.xml')
-          if os.path.exists(styles_file):
-              with open(styles_file, 'r') as f:
-                  s = f.read()
-              flags = (
-                  '        <item name="android:windowFullscreen">true</item>\n'
-                  '        <item name="android:windowContentOverlay">@null</item>\n'
-                  '        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>\n'
-              )
-              if 'android:windowFullscreen' not in s:
-                  s = s.replace(
-                      '<style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">\n',
-                      '<style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">\n' + flags
-                  )
-                  s = s.replace(
-                      '<style name="AppTheme.NoActionBarLaunch" parent="AppTheme.NoActionBar">\n',
-                      '<style name="AppTheme.NoActionBarLaunch" parent="AppTheme.NoActionBar">\n' + flags
-                  )
-                  with open(styles_file, 'w') as f:
-                      f.write(s)
-                  print('Fullscreen theme successfully applied in styles.xml')
+          if not os.path.exists(icon_src):
+              print('icon.png not found, skipping icon generation')
+              exit(0)
 
-          # 2. HIDE STATUS BAR (MainActivity.java)
-          main_activity_file = 'android/app/src/main/java/com/mohawkwarriors/drift/MainActivity.java'
-          if os.path.exists(main_activity_file):
-              with open(main_activity_file, 'w') as f:
-                  f.write(
-                      'package com.mohawkwarriors.drift;\n\n'
-                      'import android.os.Bundle;\n'
-                      'import androidx.core.view.WindowCompat;\n'
-                      'import androidx.core.view.WindowInsetsCompat;\n'
-                      'import androidx.core.view.WindowInsetsControllerCompat;\n'
-                      'import com.getcapacitor.BridgeActivity;\n\n'
-                      'public class MainActivity extends BridgeActivity {\n'
-                      '    @Override\n'
-                      '    public void onCreate(Bundle savedInstanceState) {\n'
-                      '        super.onCreate(savedInstanceState);\n'
-                      '        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());\n'
-                      '        if (controller != null) {\n'
-                      '            controller.hide(WindowInsetsCompat.Type.statusBars());\n'
-                      '            controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);\n'
-                      '        }\n'
-                      '    }\n'
-                      '}\n'
-                  )
-              print('Immersive mode configured in MainActivity.java')
+          img = Image.open(icon_src).convert('RGBA')
 
-          # 3. REMOVE DEFAULT CAPACITOR VECTOR OVERRIDES
-          for pattern in ['drawable*/ic_launcher_foreground.xml', 'drawable*/ic_launcher_background.xml']:
-              for f in glob.glob(os.path.join(res_dir, pattern)):
-                  try:
-                      os.remove(f)
-                      print(f'Removed vector override: {f}')
-                  except Exception as e:
-                      print(f'Could not remove {f}: {e}')
-
-          # 4. REMOVE android:roundIcon FROM AndroidManifest.xml
-          manifest_file = 'android/app/src/main/AndroidManifest.xml'
-          if os.path.exists(manifest_file):
-              with open(manifest_file, 'r') as f:
-                  mf = f.read()
-              mf = re.sub(r'\s*android:roundIcon="[^"]*"', '', mf)
-              with open(manifest_file, 'w') as f:
-                  f.write(mf)
-              print('Removed android:roundIcon attribute from AndroidManifest.xml')
-
-          # 5. REMOVE mipmap-anydpi-v26 TO PREVENT LAUNCHER CIRCLE-MASKING
-          anydpi_dir = os.path.join(res_dir, 'mipmap-anydpi-v26')
-          if os.path.exists(anydpi_dir):
-              shutil.rmtree(anydpi_dir)
-              print('Removed mipmap-anydpi-v26 directory')
-
-          # 6. LOAD SOURCE ICON
-          candidates = ['icon.png', 'Icon.png', 'blob.png', 'assets/icon.png', 'assets/icon-only.png']
-          icon_path = next((c for c in candidates if os.path.exists(c)), None)
-
-          if icon_path:
-              print(f'Using uploaded icon: {icon_path}')
-              img = Image.open(icon_path).convert('RGBA')
-          else:
-              print('No icon image found in repo. Generating fallback...')
-              size = 1024
-              img = Image.new('RGBA', (size, size), (243, 225, 213, 255))
-              center = size // 2
-              draw = ImageDraw.Draw(img)
-              draw.ellipse([center - 280, center - 280, center + 280, center + 280], fill=(255, 133, 132, 255))
-
-          def make_rounded(source_img, size, radius_ratio=0.2237):
-              resized = source_img.resize((size, size), Image.Resampling.LANCZOS)
-              scale = 4
-              w, h = size * scale, size * scale
-              mask = Image.new('L', (w, h), 0)
-              draw = ImageDraw.Draw(mask)
-              radius = int(w * radius_ratio)
-              draw.rounded_rectangle([0, 0, w, h], radius=radius, fill=255)
-              mask = mask.resize((size, size), Image.Resampling.LANCZOS)
-              out = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-              out.paste(resized, (0, 0), mask=mask)
-              return out
-
-          # 7. INJECT SQUIRCLE ICONS INTO ALL MIPMAP DENSITIES
-          sizes = {
+          mipmap_sizes = {
               'mipmap-mdpi': 48,
               'mipmap-hdpi': 72,
               'mipmap-xhdpi': 96,
               'mipmap-xxhdpi': 144,
               'mipmap-xxxhdpi': 192
           }
-          for folder, std_size in sizes.items():
-              target_dir = os.path.join(res_dir, folder)
-              os.makedirs(target_dir, exist_ok=True)
-              squircle_icon = make_rounded(img, std_size)
-              squircle_icon.save(os.path.join(target_dir, 'ic_launcher.png'))
-              # Also set ic_launcher_round to the squircle in case the launcher requests it
-              squircle_icon.save(os.path.join(target_dir, 'ic_launcher_round.png'))
 
-          print('All squircle rounded icons successfully injected!')
-          PYEOF
+          def round_corners(image, radius):
+              mask = Image.new('L', image.size, 0)
+              draw = ImageDraw.Draw(mask)
+              draw.rounded_rectangle([(0, 0), image.size], radius=radius, fill=255)
+              rounded = image.copy()
+              rounded.putalpha(mask)
+              return rounded
+
+          for folder, size in mipmap_sizes.items():
+              target_dir = os.path.join(base_dir, folder)
+              os.makedirs(target_dir, exist_ok=True)
+              
+              resized = img.resize((size, size), Image.Resampling.LANCZOS)
+              radius = int(size * 0.225)
+              squircle = round_corners(resized, radius)
+              
+              squircle.save(os.path.join(target_dir, 'ic_launcher.png'), 'PNG')
+              squircle.save(os.path.join(target_dir, 'ic_launcher_round.png'), 'PNG')
+          print('Successfully generated launcher icons!')
+          "
 
       - name: Build Android Debug APK
         run: |
@@ -211,7 +107,7 @@ jobs:
           apk_file=$(ls android/app/build/outputs/apk/debug/*.apk 2>/dev/null | head -n 1)
           if [ -f "$apk_file" ]; then
             cp "$apk_file" drift-app.apk
-            gh release upload latest drift-app.apk --clobber || gh release create latest drift-app.apk --title "Latest Release" --notes "Automated build from commit ${{ github.sha }}"
+            gh release upload latest drift-app.apk --clobber || gh release create latest drift-app.apk --title "Latest APK Build"
             echo "Successfully published drift-app.apk to latest release!"
           else
             echo "Error: APK file not found!"
