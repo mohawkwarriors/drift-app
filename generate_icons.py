@@ -31,16 +31,13 @@ def build_all_icons():
     bg_color = (13, 15, 24, 255)  # #0d0f18 Drift Dark Celestial Background
 
     # -------------------------------------------------------------
-    # 1. WEB / PWA ICONS
+    # 1. WEB / PWA ICONS (Generated directly in project root)
     # -------------------------------------------------------------
-    # Full-bleed squircle icons for standard web contexts & desktop
     make_squircle(base_img, 192).save("android-chrome-192x192.png", "PNG")
     make_squircle(base_img, 512).save("android-chrome-512x512.png", "PNG")
-
-    # iOS Apple Touch Icon (180x180, iOS handles squircle clipping)
     base_img.resize((180, 180), Image.Resampling.LANCZOS).save("apple-touch-icon.png", "PNG")
 
-    # PWA Maskable icons (padded with app background color so circular masking doesn't letterbox)
+    # Generate the missing maskable icons referenced by manifest.json
     for size in [192, 512]:
         canvas = Image.new("RGBA", (size, size), bg_color)
         inner_side = int(size * 0.72)
@@ -49,7 +46,7 @@ def build_all_icons():
         canvas.paste(inner_logo, (offset, offset), inner_logo)
         canvas.save(f"icon-maskable-{size}.png", "PNG")
 
-    print("Generated Web PWA icons.")
+    print("Successfully generated all Web PWA icons including icon-maskable-*.png.")
 
     # -------------------------------------------------------------
     # 2. ANDROID NATIVE / CAPACITOR ICONS
@@ -68,12 +65,11 @@ def build_all_icons():
             target_dir = os.path.join(res_dir, folder)
             os.makedirs(target_dir, exist_ok=True)
 
-            # Legacy icons (used if launcher doesn't support adaptive icons)
             legacy_sq = make_squircle(base_img, legacy_size)
             legacy_sq.save(os.path.join(target_dir, "ic_launcher.png"), "PNG")
             legacy_sq.save(os.path.join(target_dir, "ic_launcher_round.png"), "PNG")
 
-            # Adaptive icon foreground (logo centered at safe-zone scale 66%)
+            # Foreground logo scaled to 66% inside safe zone
             fg = Image.new("RGBA", (fg_size, fg_size), (0, 0, 0, 0))
             inner_side = int(fg_size * 0.66)
             inner_logo = base_img.resize((inner_side, inner_side), Image.Resampling.LANCZOS)
@@ -81,13 +77,12 @@ def build_all_icons():
             fg.paste(inner_logo, (offset, offset), inner_logo)
             fg.save(os.path.join(target_dir, "ic_launcher_foreground.png"), "PNG")
 
-        # Set adaptive icon background to #0d0f18 instead of transparent
+        # Set adaptive background to #0d0f18 to eliminate the black ring
         values_dir = os.path.join(res_dir, "values")
         os.makedirs(values_dir, exist_ok=True)
         with open(os.path.join(values_dir, "ic_launcher_background.xml"), "w") as f:
             f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#0d0f18</color>\n</resources>\n')
 
-        # Adaptive icon XML configs
         anydpi_dir = os.path.join(res_dir, "mipmap-anydpi-v26")
         os.makedirs(anydpi_dir, exist_ok=True)
         adaptive_xml = (
@@ -102,7 +97,7 @@ def build_all_icons():
         with open(os.path.join(anydpi_dir, "ic_launcher_round.xml"), "w") as f:
             f.write(adaptive_xml)
 
-        print("Generated Android Adaptive icons with #0d0f18 background.")
+        print("Successfully generated Android Adaptive icons with #0d0f18 background.")
 
 if __name__ == "__main__":
     build_all_icons()
