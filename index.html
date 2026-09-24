@@ -2107,12 +2107,15 @@ ightarrow$ enable <em>Allow from this source</em> to complete install.</span>
     }
 
     function updateThemeUI() {
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (isDayMode) {
         body.className = 'day-mode';
         themeToggle.setAttribute('aria-checked', 'false');
+        if (metaThemeColor) metaThemeColor.setAttribute('content', '#fff7ed');
       } else {
         body.className = 'night-mode';
         themeToggle.setAttribute('aria-checked', 'true');
+        if (metaThemeColor) metaThemeColor.setAttribute('content', '#080a14');
       }
     }
 
@@ -2203,11 +2206,26 @@ ightarrow$ enable <em>Allow from this source</em> to complete install.</span>
 
     function enterFullscreen() {
       try {
-        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
+        const docEl = document.documentElement;
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) return;
+        const req = docEl.requestFullscreen || 
+                    docEl.webkitRequestFullscreen || 
+                    docEl.webkitRequestFullScreen || 
+                    docEl.mozRequestFullScreen || 
+                    docEl.msRequestFullscreen;
+        if (req) {
+          req.call(docEl).catch(() => {});
         }
       } catch (e) {}
     }
+
+    // Proactively enter immersive fullscreen on first tap anywhere
+    document.addEventListener('click', function onFirstUserGesture() {
+      enterFullscreen();
+    }, { once: false, passive: true });
+    document.addEventListener('touchstart', function onFirstTouch() {
+      enterFullscreen();
+    }, { once: true, passive: true });
 
     function exitFullscreen() {
       try {
