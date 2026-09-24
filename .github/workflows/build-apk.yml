@@ -2,15 +2,18 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
   contents: write
- 
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -18,7 +21,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -31,123 +34,82 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python Pillow
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install Pillow
+      - name: Install Python Image Library
+        run: python3 -m pip install --upgrade Pillow
 
-      - name: Install Dependencies & Capacitor
+      - name: Prepare Web Assets
         run: |
-          npm init -y || true
-          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/haptics
           mkdir -p www
-          cp -r index.html site.webmanifest manifest.json icon.png apple-touch-icon.png favicon* android-chrome* www/ || true
+          cp -r index.html manifest.json site.webmanifest sw.js *.png favicon.ico www/ 2>/dev/null || true
 
-      - name: Initialize & Add Android Platform
+      - name: Install Capacitor Dependencies
         run: |
-          npx cap init Drift com.mohawkwarriors.drift --web-dir www || true
+          npm install @capacitor/cli @capacitor/core @capacitor/android
+
+      - name: Add Android Platform
+        run: |
           npx cap add android || true
+
+      - name: Sync Capacitor
+        run: |
           npx cap sync android
 
-      - name: Ensure Vibrate Permission in Android Manifest
+      - name: Generate and Inject Android Launcher Icons
         run: |
-          if ! grep -q "android.permission.VIBRATE" android/app/src/main/AndroidManifest.xml; then
-            sed -i '/<application/i \    <uses-permission android:name="android.permission.VIBRATE" />' android/app/src/main/AndroidManifest.xml
-          fi
-
-      - name: Fix Kotlin Duplicate Classes Conflict
-        run: |
-          python -c "
-          app_gradle = 'android/app/build.gradle'
-          with open(app_gradle, 'r') as f:
-              content = f.read()
-
-          fix = '''
-          configurations.all {
-              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
-              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
-          }
-
-          dependencies {
-              implementation platform('org.jetbrains.kotlin:kotlin-bom:1.9.24')
-          '''
-
-          if 'exclude group: \'org.jetbrains.kotlin\'' not in content:
-              content = content.replace('dependencies {', fix, 1)
-              with open(app_gradle, 'w') as f:
-                  f.write(content)
-              print('Successfully patched android/app/build.gradle to resolve Kotlin duplicate classes')
-          "
-
-      - name: Inject Rounded Launcher Icons
-        continue-on-error: true
-        run: |
-          python -c "
+          python3 - << 'EOF'
           import os
-          from PIL import Image, ImageDraw
+          from PIL import Image
 
-          # Paths
-          base_dir = 'android/app/src/main/res'
-          icon_src = 'icon.png'
+          src_icon = "icon.png" if os.path.exists("icon.png") else "android-chrome-512x512.png"
+          img = Image.open(src_icon).convert("RGBA")
 
-          if not os.path.exists(icon_src):
-              print('icon.png not found, skipping icon generation')
-              exit(0)
+          res_dir =png"
+          img = Image.open(src_icon).convert("RGBA")
 
-          img = Image.open(icon_src).convert('RGBA')
+          res_dir = "android/app/src/main/res"
 
-          mipmap_sizes = {
-              'mipmap-mdpi': 48,
-              'mipmap-hdpi': 72,
-              'mipmap-xhdpi': 96,
-              'mipmap-xxhdpi': 144,
-              'mipmap-xxxhdpi': 192
+          # (legacy_icon_size, adaptive_foreground_size)
+          densities = {
+              "mipmap-mdpi": (48, 108),
+              "mipmap-hdpi": (72, 162),
+              "mipmap-xhdpi": (96, 216),
+              "mipmap-xxhdpi": (144, 324),
+              "mipmap-xxxhdpi": (192, 432),
           }
 
-          def round_corners(image, radius):
-              mask = Image.new('L', image.size, 0)
-              draw = ImageDraw.Draw(mask)
-              draw.rounded_rectangle([(0, 0), image.size], radius=radius, fill=255)
-              rounded = image.copy()
-              rounded.putalpha(mask)
-              return rounded
-
-          for folder, size in mipmap_sizes.items():
-              target_dir = os.path.join(base_dir, folder)
+          for folder, (size, fg_size) in densities.items():
+              target_dir = os.path.join(res_dir, folder)
               os.makedirs(target_dir, exist_ok=True)
 
-              resized = img.resize((size, size), Image.Resampling.LANCZOS)
-              radius = int(size * 0.225)
-              squircle = round_corners(resized, radius)
+              # Standard and Round legacy icons
+              img.resize((size, size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, "ic_launcher.png"))
+              img.resize((size, size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, "ic_launcher_round.png"))
 
-              squircle.save(os.path.join(target_dir, 'ic_launcher.png'), 'PNG')
-              squircle.save(os.path.join(target_dir, 'ic_launcher_round.png'), 'PNG')
-          print('Successfully generated launcher icons!')
-          "
+              # Adaptive foreground icon (centered within the 72% safe zone)
+              fg = Image.new("RGBA", (fg_size, fg_size), (0, 0, 0, 0))
+              inner_dim = int(fg_size * 0.72)
+              inner_img = img.resize((inner_dim, inner_dim), Image.Resampling.LANCZOS)
+              offset = (fg_size - inner_dim) // 2
+              fg.paste(inner_img, (offset, offset), inner_img)
+              fg.save(os.path.join(target_dir, "ic_launcher_foreground.png"))
 
-      - name: Build Android Debug APK
+          # Configure adaptive icon background color
+          values_dir = os.path.join(res_dir, "values")
+          os.makedirs(values_dir, exist_ok=True)
+          with open(os.path.join(values_dir, "ic_launcher_background.xml"), "w") as f:
+              f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#0d0f18</color>\n</resources>\n')
+
+          print("Successfully generated Android launcher icons across all mipmap densities.")
+          EOF
+
+      - name: Build Android App (APK)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug
 
-      - name: Upload APK as Artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Drift-App-Debug-APK
-          path: android/app/build/outputs/apk/**/*.apk
-          retention-days: 30
-
-      - name: Publish APK to GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          apk_file=$(ls android/app/build/outputs/apk/debug/*.apk 2>/dev/null | head -n 1)
-          if [ -f "$apk_file" ]; then
-            cp "$apk_file" drift-app.apk
-            gh release upload latest drift-app.apk --clobber || gh release create latest drift-app.apk --title "Latest APK Build"
-            echo "Successfully published drift-app.apk to latest release!"
-          else
-            echo "Error: APK file not found!"
-            exit 1
-          fi
+          name: drift-app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
