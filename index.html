@@ -1532,7 +1532,7 @@
       // 1. Transitions Only (Inflections at boundaries)
       if (activeHaptic === 'transitions') {
         if (step.isPhaseStart) {
-          return { pattern: getTransitionPattern(step.phaseType), ratio: 1.0 };
+          return getTransitionPattern(step.phaseType);
         }
         return null;
       }
@@ -1543,61 +1543,20 @@
         const MAX_WAVE = 65; // User-selected ceiling for maximum inhale intensity
 
         if (step.phaseType === 'inhale') {
-          // Gently increase from MIN_WAVE up to MAX_WAVE
           const progress = (step.stepInPhase - 1) / Math.max(step.phaseLength - 1, 1);
-          const duration = Math.round(MIN_WAVE + progress * (MAX_WAVE - MIN_WAVE));
-          return { pattern: [duration], ratio: progress };
+          return [Math.round(MIN_WAVE + progress * (MAX_WAVE - MIN_WAVE))];
         }
         if (step.phaseType === 'hold_full' || step.phaseType === 'hold_empty') {
           return null; // Restful stillness during holds
         }
         if (step.phaseType === 'exhale') {
-          // Gently decrease from MAX_WAVE down to MIN_WAVE
           const progress = (step.stepInPhase - 1) / Math.max(step.phaseLength - 1, 1);
-          const duration = Math.round(MAX_WAVE - progress * (MAX_WAVE - MIN_WAVE));
-          return { pattern: [duration], ratio: 1.0 - progress };
+          return [Math.round(MAX_WAVE - progress * (MAX_WAVE - MIN_WAVE))];
         }
       }
 
       return null;
     }
-
-    /* =========================================================
-       WEB AUDIO TACTILE RESONANCE ENGINE (iOS Safari / PWA)
-       Synthesizes 50-62 Hz sub-bass chassis resonance impulses
-       ========================================================= */
-    let audioCtx = null;
-    function unlockIOSAudioSession() {
-      if (!audioCtx) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) {
-          audioCtx = new AudioContextClass();
-        }
-      }
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-    }
-
-    function playTactileSubBass(freq = 56, duration = 0.08, volume = 0.35) {
-      if (!audioCtx) return;
-      try {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(Math.min(volume, 0.45), audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {}
-    }
-
-    window.addEventListener('pointerdown', unlockIOSAudioSession, { passive: true, once: false });
-    window.addEventListener('touchstart', unlockIOSAudioSession, { passive: true, once: false });
 
     let iosHapticLabel = null;
     let iosHapticInput = null;
@@ -1645,21 +1604,9 @@
       }
     }
 
-    function executeVibration(hapticInput) {
-      if (!hapticInput) return;
-      
-      let pattern;
-      let ratio = 0.5;
-
-      if (Array.isArray(hapticInput) || typeof hapticInput === 'number') {
-        pattern = typeof hapticInput === 'number' ? [hapticInput] : hapticInput;
-      } else if (typeof hapticInput === 'object' && hapticInput.pattern) {
-        pattern = Array.isArray(hapticInput.pattern) ? hapticInput.pattern : [hapticInput.pattern];
-        ratio = hapticInput.ratio !== undefined ? hapticInput.ratio : 0.5;
-      } else {
-        return;
-      }
-
+    function executeVibration(pattern) {
+      if (!pattern) return;
+      if (typeof pattern === 'number') pattern = [pattern];
       if (!pattern.length || pattern[0] === 0) return;
 
       // 1. Native Capacitor Haptics (iOS / Android native app wrapper)
@@ -1691,11 +1638,8 @@
         } catch(e) {}
       }
 
-      // 3. iOS Safari / WebKit switch haptic trigger & Web Audio tactile resonance
+      // 3. iOS Safari / WebKit switch haptic trigger (Silent hardware Taptic Engine)
       triggerIOSHapticSequence(pattern);
-      const scaledFreq = Math.round(48 + 14 * ratio);
-      const scaledVol = 0.15 + 0.30 * ratio;
-      playTactileSubBass(scaledFreq, 0.08, scaledVol);
     }
 
     function previewHaptic(mode) {
@@ -1704,7 +1648,7 @@
       } else if (mode === 'metronome') {
         executeVibration([20, 50, 6, 60, 16]); // Softened sample cadence
       } else if (mode === 'wave') {
-        // Swell preview: gentle start -> mid -> peak at max (65ms)
+        // Swell preview: gentle start (15ms) -> mid (38ms) -> peak at max (65ms)
         executeVibration([15, 60, 38, 60, 65]);
       }
     }
