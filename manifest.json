@@ -3,6 +3,7 @@
   "short_name": "Drift",
   "start_url": "./",
   "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
   "background_color": "#0d0f18",
   "theme_color": "#0d0f18",
   "description": "Fluid mindfulness and breathing companion",
