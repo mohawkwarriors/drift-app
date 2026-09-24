@@ -899,11 +899,11 @@
     }
 
     
-    /* 4 Haptic Feedback Modes */
+    /* 3 Haptic Feedback Modes */
     .haptics-group {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
     }
 
     .haptic-card {
@@ -1280,17 +1280,13 @@
       </div>
 
       
-      <!-- 4 Haptic Feedback Modes Section -->
+      <!-- 3 Haptic Feedback Modes Section -->
       <div class="settings-section">
         <div class="section-label">Haptic Feedback</div>
         <div class="haptics-group" id="hapticsGroup">
           <div class="haptic-card active" data-haptic="transitions">
             <span class="haptic-title">Transitions</span>
             <span class="haptic-sub">Inflections</span>
-          </div>
-          <div class="haptic-card" data-haptic="metronome">
-            <span class="haptic-title">Metronome</span>
-            <span class="haptic-sub">Cadence</span>
           </div>
           <div class="haptic-card" data-haptic="wave">
             <span class="haptic-title">Wave</span>
@@ -1440,7 +1436,7 @@
 
     // Technique Configurations
     let activeTechnique = 'box'; // 'box' or '478'
-    let activeHaptic = 'transitions'; // 'transitions', 'metronome', 'wave', 'off'
+    let activeHaptic = 'transitions'; // 'transitions', 'wave', 'off'
 
     const TECHNIQUES = {
       box: {
@@ -1510,75 +1506,100 @@
       initSwipeDuration();
       initSettingsEvents();
       initReminderService();
+      initIOSHaptics();
 
-      blobMover.addEventListener('click', () => { if (!isBreathing && !settingsModal.classList.contains('open')) startSession(); });
+      // Unlock AudioContext and prime iOS switch haptics on very first touch/gesture
+      const primeMediaAndHaptics = () => {
+        initAudioContext();
+        triggerIOSHapticPulse();
+        window.removeEventListener('pointerdown', primeMediaAndHaptics);
+        window.removeEventListener('touchstart', primeMediaAndHaptics);
+        window.removeEventListener('click', primeMediaAndHaptics);
+      };
+      window.addEventListener('pointerdown', primeMediaAndHaptics, { passive: true });
+      window.addEventListener('touchstart', primeMediaAndHaptics, { passive: true });
+      window.addEventListener('click', primeMediaAndHaptics, { passive: true });
+
+      blobMover.addEventListener('click', () => { 
+        initAudioContext();
+        if (!isBreathing && !settingsModal.classList.contains('open')) startSession(); 
+      });
       endBtn.addEventListener('click', stopSession);
       themeToggle.addEventListener('click', toggleTheme);
     }
 
     /* =========================================================
-       HAPTICS ENGINE
+       HAPTICS & TACTILE ENGINE (CROSS-PLATFORM)
        ========================================================= */
-    function getTransitionPattern(phaseType) {
-      switch (phaseType) {
-        case 'inhale':
-          return [40, 50, 70]; // Ascending double-tap
-        case 'hold_full':
-          return [65]; // Solid crisp anchor tap
-        case 'exhale':
-          return [70, 50, 35]; // Descending double-tap
-        case 'hold_empty':
-          return [25]; // Micro-tap for empty stillness
-        default:
-          return [45];
-      }
-    }
+    const isIOS = typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
-    function calculateStepHaptic(step) {
-      if (activeHaptic === 'off') return null;
-
-      // Option 1: Transitions Only
-      if (activeHaptic === 'transitions') {
-        if (step.isPhaseStart) {
-          return getTransitionPattern(step.phaseType);
-        }
-        return null;
-      }
-
-      // Option 2: Continuous Rhythmic Metronome
-      if (activeHaptic === 'metronome') {
-        if (step.isPhaseStart) {
-          return getTransitionPattern(step.phaseType);
-        }
-        if (step.stepInPhase === step.phaseLength - 1) {
-          return [30]; // Penultimate second warning
-        }
-        return [10]; // 1-second cadence micro-tap
-      }
-
-      // Option 3: Dynamic Breathing Wave
-      if (activeHaptic === 'wave') {
-        if (step.phaseType === 'inhale') {
-          // Sec 1: 20ms -> Sec 2: 40ms -> Sec 3: 60ms -> Sec 4: 85ms
-          const progress = (step.stepInPhase - 1) / Math.max(step.phaseLength - 1, 1);
-          return [Math.round(20 + progress * (85 - 20))];
-        }
-        if (step.phaseType === 'hold_full' || step.phaseType === 'hold_empty') {
-          return null; // Stillness
-        }
-        if (step.phaseType === 'exhale') {
-          // Sec 1: 85ms -> Sec 2: 60ms -> Sec 3: 40ms -> Sec 4: 20ms
-          const progress = (step.stepInPhase - 1) / Math.max(step.phaseLength - 1, 1);
-          return [Math.round(85 - progress * (85 - 20))];
-        }
-      }
-
-      return null;
-    }
-
+    let audioCtx = null;
     let iosHapticLabel = null;
     let iosHapticInput = null;
 
+    // Web Audio Tactile Resonance Engine:
+    // Synthesizes a physical 50Hz-62Hz sub-bass chassis resonance impulse + subtle zen acoustic micro-tick.
+    // This allows continuous, rhythmic pacing during breathing sessions (setInterval) on iOS Safari & PWAs
+    // where WebKit strictly blocks synthetic switch events and does not support navigator.vibrate.
+    function initAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+    }
+
+    function playTactileAcousticPulse(intensity = 0.5, type = 'cadence') {
+      if (activeHaptic === 'off') return;
+      initAudioContext();
+      if (!audioCtx || audioCtx.state !== 'running') return;
+
+      try {
+        const now = audioCtx.currentTime;
+
+        // 1. Sub-bass physical resonance pulse (50Hz - 62Hz) to physically vibrate device speakers/chassis
+        const osc = audioCtx.createOscillator();
+        const oscGain = audioCtx.createGain();
+        const freq = type === 'transition' ? 52 : (type === 'anchor' ? 58 : 62);
+        const duration = type === 'transition' ? 0.065 : (type === 'anchor' ? 0.048 : 0.032);
+        const peakGain = Math.min(0.85, Math.max(0.18, intensity * 0.75));
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        oscGain.gain.setValueAtTime(0.001, now);
+        oscGain.gain.exponentialRampToValueAtTime(peakGain, now + 0.003);
+        oscGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        osc.connect(oscGain);
+        oscGain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + duration + 0.008);
+
+        // 2. High-frequency crisp tactile definition click (subtle acoustic transient)
+        const clickOsc = audioCtx.createOscillator();
+        const clickGain = audioCtx.createGain();
+        clickOsc.type = 'triangle';
+        clickOsc.frequency.setValueAtTime(type === 'transition' ? 180 : 230, now);
+
+        clickGain.gain.setValueAtTime(0.001, now);
+        clickGain.gain.exponentialRampToValueAtTime(peakGain * 0.22, now + 0.002);
+        clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.012);
+
+        clickOsc.connect(clickGain);
+        clickGain.connect(audioCtx.destination);
+        clickOsc.start(now);
+        clickOsc.stop(now + 0.015);
+      } catch (e) {}
+    }
+
+    // iOS Safari / WebKit switch trigger (iOS 17.4+ / iOS 18+)
+    // Uses a fully layout-active <input type="checkbox" switch> wrapped in an active label off-screen.
     function initIOSHaptics() {
       if (document.getElementById('iosHapticLabel')) {
         iosHapticLabel = document.getElementById('iosHapticLabel');
@@ -1590,16 +1611,17 @@
         iosHapticLabel = document.createElement('label');
         iosHapticLabel.id = 'iosHapticLabel';
         iosHapticLabel.setAttribute('for', id);
-        iosHapticLabel.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;width:1px;height:1px;overflow:hidden;';
+        // Important: keep valid switch dimensions and pointer-events enabled so WebKit registers user clicks
+        iosHapticLabel.style.cssText = 'position:fixed;top:-100px;left:-100px;width:51px;height:31px;opacity:0.001;pointer-events:auto;z-index:-9999;';
 
         iosHapticInput = document.createElement('input');
         iosHapticInput.type = 'checkbox';
         iosHapticInput.setAttribute('switch', '');
         iosHapticInput.id = id;
-        iosHapticInput.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;width:1px;height:1px;overflow:hidden;';
+        iosHapticInput.style.cssText = 'position:absolute;width:100%;height:100%;opacity:0.001;pointer-events:auto;';
 
+        iosHapticLabel.appendChild(iosHapticInput);
         document.body.appendChild(iosHapticLabel);
-        document.body.appendChild(iosHapticInput);
       } catch(e) {}
     }
 
@@ -1622,51 +1644,109 @@
       }
     }
 
-    function executeVibration(pattern) {
-      if (!pattern) return;
+    // Calibrated patterns for hardware vibration motors (ERM / LRA).
+    // Pulses <25ms are physically imperceptible on Android motors; durations are calibrated for clear physical response.
+    function getTransitionPattern(phaseType) {
+      switch (phaseType) {
+        case 'inhale':
+          return [40, 50, 70]; // Ascending double-tap
+        case 'hold_full':
+          return [55]; // Solid crisp anchor tap
+        case 'exhale':
+          return [70, 50, 40]; // Descending double-tap
+        case 'hold_empty':
+          return [30]; // Gentle stillness tap
+        default:
+          return [45];
+      }
+    }
+
+    function calculateStepHaptic(step) {
+      if (activeHaptic === 'off') return null;
+
+      // Option 1: Transitions Only (Inflections)
+      if (activeHaptic === 'transitions') {
+        if (step.isPhaseStart) {
+          return getTransitionPattern(step.phaseType);
+        }
+        return null;
+      }
+
+      // Option 2: Dynamic Breathing Wave (Somatic)
+      if (activeHaptic === 'wave') {
+        if (step.phaseType === 'inhale') {
+          const progress = (step.stepInPhase - 1) / Math.max(step.phaseLength - 1, 1);
+          return [Math.round(25 + progress * (65 - 25))];
+        }
+        if (step.phaseType === 'hold_full' || step.phaseType === 'hold_empty') {
+          return null; // Restful stillness during hold phases
+        }
+        if (step.phaseType === 'exhale') {
+          const progress = (step.stepInPhase - 1) / Math.max(step.phaseLength - 1, 1);
+          return [Math.round(65 - progress * (65 - 25))];
+        }
+      }
+
+      return null;
+    }
+
+    function executeVibration(pattern, pulseType = 'cadence') {
+      if (activeHaptic === 'off' || !pattern) return;
       if (typeof pattern === 'number') pattern = [pattern];
       if (!pattern.length || pattern[0] === 0) return;
 
-      // 1. Native Capacitor Haptics (iOS / Android native app wrapper)
-      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
+      let didVibrate = false;
+
+      // 1. Native Capacitor Haptics Plugin (Android APK / native shell)
+      const cap = window.Capacitor;
+      const capHaptics = cap && cap.Plugins && cap.Plugins.Haptics ? cap.Plugins.Haptics : null;
+      if (capHaptics) {
         try {
-          const capHaptics = window.Capacitor.Plugins.Haptics;
           if (pattern.length === 1) {
-            if (pattern[0] <= 15) {
-              capHaptics.impact({ style: 'LIGHT' });
-            } else if (pattern[0] <= 45) {
-              capHaptics.impact({ style: 'MEDIUM' });
+            if (pattern[0] <= 30) {
+              capHaptics.impact({ style: 'LIGHT' }).catch(() => {});
+            } else if (pattern[0] <= 55) {
+              capHaptics.impact({ style: 'MEDIUM' }).catch(() => {});
             } else {
-              capHaptics.impact({ style: 'HEAVY' });
+              capHaptics.impact({ style: 'HEAVY' }).catch(() => {});
             }
           } else {
             const totalDur = pattern.reduce((acc, v) => acc + v, 0);
-            capHaptics.vibrate({ duration: Math.min(totalDur, 200) });
+            capHaptics.vibrate({ duration: Math.min(totalDur, 250) }).catch(() => {});
           }
-          return;
+          didVibrate = true;
         } catch(e) {}
       }
 
-      // 2. Standard Web Vibration API (Android Chrome, Firefox)
-      if (navigator.vibrate) {
+      // 2. Standard Web Vibration API (Android Chrome, Firefox, TWA, WebView)
+      if (!didVibrate && !isIOS && typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
         try {
-          navigator.vibrate(pattern);
-          return;
+          // Normalize pulses to respect hardware motor threshold
+          const calibratedPattern = pattern.map((val, idx) => {
+            return (idx % 2 === 0) ? Math.max(val, 25) : val;
+          });
+          const success = navigator.vibrate(calibratedPattern);
+          if (success) didVibrate = true;
         } catch(e) {}
       }
 
-      // 3. iOS Safari / WebKit switch haptic trigger (iOS 17.4+ / iOS 18+)
-      // Safari completely omits navigator.vibrate, but toggling an <input switch> triggers the iPhone Taptic Engine.
-      triggerIOSHapticSequence(pattern);
+      // 3. iOS Safari / WebKit switch trigger (Taptic Engine trigger on direct taps)
+      if (isIOS) {
+        triggerIOSHapticSequence(pattern);
+      }
+
+      // 4. Web Audio Tactile Resonance Pulse (Universal fallback)
+      // Provides tactile speaker resonance during setInterval breathing sessions on iOS Safari
+      // where background timer vibration is blocked by Apple, plus fallback for silent Android APKs.
+      const intensity = Math.min(1.0, (pattern[0] || 30) / 70);
+      playTactileAcousticPulse(intensity, pulseType);
     }
 
     function previewHaptic(mode) {
       if (mode === 'transitions') {
-        executeVibration([40, 50, 70]);
-      } else if (mode === 'metronome') {
-        executeVibration([40, 45, 10, 80, 30]);
+        executeVibration([40, 50, 70], 'transition');
       } else if (mode === 'wave') {
-        executeVibration([25, 60, 50, 60, 85]);
+        executeVibration([25, 50, 45, 50, 65], 'cadence');
       }
     }
 
@@ -1680,7 +1760,6 @@
         previewHaptic(mode);
       }
     }
-
     /* =========================================================
        SETTINGS & PERSISTENCE
        ========================================================= */
@@ -1691,7 +1770,7 @@
       technique478.classList.toggle('active', tech === '478');
       rebuildCycleSlots();
       saveSettings();
-      executeVibration([20]);
+      executeVibration([30], 'anchor');
     }
 
     function loadSettings() {
@@ -1702,8 +1781,10 @@
           if (parsed.technique && TECHNIQUES[parsed.technique]) {
             activeTechnique = parsed.technique;
           }
-          if (parsed.haptic && ['transitions', 'metronome', 'wave', 'off'].includes(parsed.haptic)) {
+          if (parsed.haptic && ['transitions', 'wave', 'off'].includes(parsed.haptic)) {
             activeHaptic = parsed.haptic;
+          } else if (parsed.haptic === 'metronome') {
+            activeHaptic = 'transitions';
           }
           if (Array.isArray(parsed.durations) && parsed.durations.length === 3) {
             userDurations = parsed.durations;
@@ -1880,7 +1961,7 @@
     function setDurationIndex(idx) {
       if (idx === selectedDurationIdx) return;
       selectedDurationIdx = idx;
-      executeVibration([18]);
+      executeVibration([28], 'cadence');
 
       const tabs = durationCapsule.querySelectorAll('.duration-tab');
       tabs.forEach((tab, i) => {
@@ -1978,11 +2059,13 @@
 
       const hapticPattern = calculateStepHaptic(step);
       if (hapticPattern) {
-        executeVibration(hapticPattern);
+        const pulseType = step.isPhaseStart ? 'transition' : (step.stepInPhase === step.phaseLength - 1 ? 'anchor' : 'cadence');
+        executeVibration(hapticPattern, pulseType);
       }
     }
 
     function startSession() {
+      initAudioContext();
       isBreathing = true;
       currentCycleSecond = 0;
       completedCycles = 0;
@@ -2025,6 +2108,7 @@
     }
 
     function stopSession() {
+      executeVibration([25], 'anchor');
       isBreathing = false;
       clearInterval(cycleInterval);
       
@@ -2052,6 +2136,7 @@
     }
 
     function finishSession() {
+      executeVibration([40, 60, 60], 'transition');
       isBreathing = false;
       clearInterval(cycleInterval);
       
