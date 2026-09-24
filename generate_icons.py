@@ -1,8 +1,8 @@
 import os
+import shutil
 from PIL import Image, ImageDraw
 
 def make_squircle(image, size, radius_ratio=0.225):
-    """Resizes image and applies squircle alpha mask."""
     resized = image.resize((size, size), Image.Resampling.LANCZOS)
     mask = Image.new("L", (size, size), 0)
     draw = ImageDraw.Draw(mask)
@@ -23,81 +23,42 @@ def build_all_icons():
     src_icon = next((f for f in candidates if os.path.exists(f)), None)
 
     if not src_icon:
-        print("Error: No source icon found. Please place 'icon.png' in the project root.")
+        print("Error: No source icon found.")
         exit(1)
 
     print(f"Using source icon: {src_icon}")
     base_img = Image.open(src_icon).convert("RGBA")
-    bg_color = (13, 15, 24, 255)  # #0d0f18 Drift Dark Celestial Background
 
-    # -------------------------------------------------------------
-    # 1. WEB / PWA ICONS (Generated directly in project root)
-    # -------------------------------------------------------------
+    # 1. Web PWA Icons (Pure Squircles with transparent outside corners)
     make_squircle(base_img, 192).save("android-chrome-192x192.png", "PNG")
     make_squircle(base_img, 512).save("android-chrome-512x512.png", "PNG")
     base_img.resize((180, 180), Image.Resampling.LANCZOS).save("apple-touch-icon.png", "PNG")
 
-    # Generate the missing maskable icons referenced by manifest.json
-    for size in [192, 512]:
-        canvas = Image.new("RGBA", (size, size), bg_color)
-        inner_side = int(size * 0.72)
-        inner_logo = base_img.resize((inner_side, inner_side), Image.Resampling.LANCZOS)
-        offset = (size - inner_side) // 2
-        canvas.paste(inner_logo, (offset, offset), inner_logo)
-        canvas.save(f"icon-maskable-{size}.png", "PNG")
-
-    print("Successfully generated all Web PWA icons including icon-maskable-*.png.")
-
-    # -------------------------------------------------------------
-    # 2. ANDROID NATIVE / CAPACITOR ICONS
-    # -------------------------------------------------------------
+    # 2. Android Native Mipmap Icons
     res_dir = "android/app/src/main/res"
     if os.path.exists(res_dir):
+        # Remove adaptive icon XMLs so the launcher renders the squircle PNG directly
+        anydpi_dir = os.path.join(res_dir, "mipmap-anydpi-v26")
+        if os.path.exists(anydpi_dir):
+            shutil.rmtree(anydpi_dir)
+            print("Removed mipmap-anydpi-v26 to disable adaptive circle masking.")
+
         densities = {
-            "mipmap-mdpi": (48, 108),
-            "mipmap-hdpi": (72, 162),
-            "mipmap-xhdpi": (96, 216),
-            "mipmap-xxhdpi": (144, 324),
-            "mipmap-xxxhdpi": (192, 432),
+            "mipmap-mdpi": 48,
+            "mipmap-hdpi": 72,
+            "mipmap-xhdpi": 96,
+            "mipmap-xxhdpi": 144,
+            "mipmap-xxxhdpi": 192,
         }
 
-        for folder, (legacy_size, fg_size) in densities.items():
+        for folder, size in densities.items():
             target_dir = os.path.join(res_dir, folder)
             os.makedirs(target_dir, exist_ok=True)
+            sq = make_squircle(base_img, size)
+            sq.save(os.path.join(target_dir, "ic_launcher.png"), "PNG")
+            sq.save(os.path.join(target_dir, "ic_launcher_round.png"), "PNG")
 
-            legacy_sq = make_squircle(base_img, legacy_size)
-            legacy_sq.save(os.path.join(target_dir, "ic_launcher.png"), "PNG")
-            legacy_sq.save(os.path.join(target_dir, "ic_launcher_round.png"), "PNG")
-
-            # Foreground logo scaled to 66% inside safe zone
-            fg = Image.new("RGBA", (fg_size, fg_size), (0, 0, 0, 0))
-            inner_side = int(fg_size * 0.66)
-            inner_logo = base_img.resize((inner_side, inner_side), Image.Resampling.LANCZOS)
-            offset = (fg_size - inner_side) // 2
-            fg.paste(inner_logo, (offset, offset), inner_logo)
-            fg.save(os.path.join(target_dir, "ic_launcher_foreground.png"), "PNG")
-
-        # Set adaptive background to #0d0f18 to eliminate the black ring
-        values_dir = os.path.join(res_dir, "values")
-        os.makedirs(values_dir, exist_ok=True)
-        with open(os.path.join(values_dir, "ic_launcher_background.xml"), "w") as f:
-            f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#0d0f18</color>\n</resources>\n')
-
-        anydpi_dir = os.path.join(res_dir, "mipmap-anydpi-v26")
-        os.makedirs(anydpi_dir, exist_ok=True)
-        adaptive_xml = (
-            '<?xml version="1.0" encoding="utf-8"?>\n'
-            '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
-            '    <background android:drawable="@color/ic_launcher_background"/>\n'
-            '    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n'
-            '</adaptive-icon>\n'
-        )
-        with open(os.path.join(anydpi_dir, "ic_launcher.xml"), "w") as f:
-            f.write(adaptive_xml)
-        with open(os.path.join(anydpi_dir, "ic_launcher_round.xml"), "w") as f:
-            f.write(adaptive_xml)
-
-        print("Successfully generated Android Adaptive icons with #0d0f18 background.")
+        print("Generated native squircle PNG icons across all mipmap densities.")
 
 if __name__ == "__main__":
     build_all_icons()
