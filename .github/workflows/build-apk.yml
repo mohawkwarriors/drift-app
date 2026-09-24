@@ -56,14 +56,11 @@ jobs:
 
       - name: Generate and Inject Android Launcher Icons
         run: |
-          python3 - << 'EOF'
+          cat << 'EOF' > generate_icons.py
           import os
           from PIL import Image
 
           src_icon = "icon.png" if os.path.exists("icon.png") else "android-chrome-512x512.png"
-          img = Image.open(src_icon).convert("RGBA")
-
-          res_dir =png"
           img = Image.open(src_icon).convert("RGBA")
 
           res_dir = "android/app/src/main/res"
@@ -81,11 +78,11 @@ jobs:
               target_dir = os.path.join(res_dir, folder)
               os.makedirs(target_dir, exist_ok=True)
 
-              # Standard and Round legacy icons
+              # 1. Standard and Round legacy launcher icons
               img.resize((size, size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, "ic_launcher.png"))
               img.resize((size, size), Image.Resampling.LANCZOS).save(os.path.join(target_dir, "ic_launcher_round.png"))
 
-              # Adaptive foreground icon (centered within the 72% safe zone)
+              # 2. Adaptive launcher foreground icon (centered within the 72% safe zone)
               fg = Image.new("RGBA", (fg_size, fg_size), (0, 0, 0, 0))
               inner_dim = int(fg_size * 0.72)
               inner_img = img.resize((inner_dim, inner_dim), Image.Resampling.LANCZOS)
@@ -101,6 +98,7 @@ jobs:
 
           print("Successfully generated Android launcher icons across all mipmap densities.")
           EOF
+          python3 generate_icons.py
 
       - name: Build Android App (APK)
         run: |
